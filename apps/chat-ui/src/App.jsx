@@ -205,6 +205,7 @@ function buildViewModel(result) {
         return null;
     }
 
+
     const system1 = result.system1 || {};
     const system2 = result.system2 || {};
     const system3 = result.system3 || null;
