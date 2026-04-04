@@ -1,0 +1,10 @@
+__pycache__/
+.pytest_cache/
+.venv/
+node_modules/
+dist/
+*.pyc
+.DS_Store
+.env
+.env.local
+apps/chat-ui/.env.local

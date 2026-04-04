@@ -1,0 +1,64 @@
+version: "3.9"
+
+services:
+  system1:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    working_dir: /app/services/system1
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8001
+    environment:
+      PYTHONPATH: /app/packages/shared/src
+    ports:
+      - "8001:8001"
+
+  system2:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    working_dir: /app/services/system2
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8002
+    environment:
+      PYTHONPATH: /app/packages/shared/src
+    ports:
+      - "8002:8002"
+
+  system3:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    working_dir: /app/services/system3
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8003
+    environment:
+      PYTHONPATH: /app/packages/shared/src
+    ports:
+      - "8003:8003"
+
+  orchestrator:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    working_dir: /app/services/orchestrator
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000
+    environment:
+      PYTHONPATH: /app/packages/shared/src
+      SYSTEM1_URL: http://system1:8001
+      SYSTEM2_URL: http://system2:8002
+      SYSTEM3_URL: http://system3:8003
+    ports:
+      - "8000:8000"
+    depends_on:
+      - system1
+      - system2
+      - system3
+
+  chat-ui:
+    build:
+      context: .
+      dockerfile: apps/chat-ui/Dockerfile
+    environment:
+      VITE_API_BASE_URL: http://localhost:8000
+    ports:
+      - "5173:5173"
+    depends_on:
+      - orchestrator

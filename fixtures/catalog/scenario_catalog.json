@@ -1,0 +1,745 @@
+{
+  "seed": 11,
+  "golden_scenarios": [
+    "tty_tentity_missing_final_select",
+    "tty_tcustomer_wrong_new_alias",
+    "fin_tinvoice_renamed_derivation",
+    "fin_torder_join_null_spike",
+    "ops_tinventory_filter_row_loss",
+    "tty_tprofile_source_column_disappearance",
+    "fin_tledger_wrong_business_alias",
+    "ops_tbalance_insufficient_evidence"
+  ],
+  "scenarios": [
+    {
+      "id": "tty_tentity_missing_final_select",
+      "golden": true,
+      "scenario_type": "missing_final_select",
+      "division": "TTY",
+      "table_name": "TENTITY",
+      "old_target_table_name": "tentity_old",
+      "new_target_table_name": "tentity_new",
+      "source_tables": [
+        "src_tentity_base",
+        "src_tentity_audit"
+      ],
+      "owner_users": [
+        "tty_owner",
+        "data_support_tty"
+      ],
+      "support_team": "data_team_tty",
+      "business_description": "Core entity master data for the TTY division.",
+      "criticality": "high",
+      "issue_title": "TTY_TENTITY_Column UPDATEDDATE missing",
+      "focus_columns": [
+        "UPDATEDDATE"
+      ],
+      "root_cause_family": "missing_final_select",
+      "decision": "regression_detected",
+      "expected_keywords": [
+        "date_updated",
+        "UPDATEDDATE",
+        "not projected"
+      ],
+      "mapping_rows": [
+        {
+          "old_system": "Gavin2",
+          "new_system": "Gavin3",
+          "old_table_name": "tentity_old",
+          "new_table_name": "tentity_new",
+          "old_column_name": "entity_id",
+          "new_column_name": "EntityIdentifier",
+          "data_type_old": "string",
+          "data_type_new": "string"
+        },
+        {
+          "old_system": "Gavin2",
+          "new_system": "Gavin3",
+          "old_table_name": "tentity_old",
+          "new_table_name": "tentity_new",
+          "old_column_name": "entity_name",
+          "new_column_name": "EntityDisplayName",
+          "data_type_old": "string",
+          "data_type_new": "string"
+        },
+        {
+          "old_system": "Gavin2",
+          "new_system": "Gavin3",
+          "old_table_name": "tentity_old",
+          "new_table_name": "tentity_new",
+          "old_column_name": "date_updated",
+          "new_column_name": "UPDATEDDATE",
+          "data_type_old": "timestamp",
+          "data_type_new": "timestamp"
+        },
+        {
+          "old_system": "Gavin2",
+          "new_system": "Gavin3",
+          "old_table_name": "tentity_old",
+          "new_table_name": "tentity_new",
+          "old_column_name": "updated_by",
+          "new_column_name": "UpdatedByUser",
+          "data_type_old": "string",
+          "data_type_new": "string"
+        }
+      ],
+      "old_script": "from pyspark.sql import functions as F\n\n\ndef transform(src_tentity_base, src_tentity_audit):\n    audit_snapshot = src_tentity_audit.select(\n        \"entity_id\",\n        \"date_updated\",\n        \"updated_by\",\n    )\n\n    return (\n        src_tentity_base.alias(\"base\")\n        .join(audit_snapshot.alias(\"audit\"), on=\"entity_id\", how=\"left\")\n        .select(\n            F.col(\"base.entity_id\").alias(\"entity_id\"),\n            F.col(\"base.entity_name\").alias(\"entity_name\"),\n            F.col(\"audit.date_updated\").alias(\"date_updated\"),\n            F.col(\"audit.updated_by\").alias(\"updated_by\"),\n        )\n    )\n",
+      "new_script": "from pyspark.sql import functions as F\n\n\ndef transform(src_tentity_base, src_tentity_audit):\n    audit_snapshot = src_tentity_audit.select(\n        \"EntityIdentifier\",\n        \"UpdatedByUser\",\n    )\n\n    return (\n        src_tentity_base.alias(\"base\")\n        .join(audit_snapshot.alias(\"audit\"), on=\"EntityIdentifier\", how=\"left\")\n        .select(\n            F.col(\"base.EntityIdentifier\").alias(\"EntityIdentifier\"),\n            F.col(\"base.EntityDisplayName\").alias(\"EntityDisplayName\"),\n            F.col(\"audit.UpdatedByUser\").alias(\"UpdatedByUser\"),\n        )\n    )\n",
+      "old_transformation_script_path": "/Users/abhishek/Desktop/Projects/Bug Management/fixtures/scripts/old/tty/tentity.py",
+      "new_transformation_script_path": "/Users/abhishek/Desktop/Projects/Bug Management/fixtures/scripts/new/tty/tentity.py"
+    },
+    {
+      "id": "tty_tcustomer_wrong_new_alias",
+      "golden": true,
+      "scenario_type": "alias_mismatch",
+      "division": "TTY",
+      "table_name": "TCUSTOMER",
+      "old_target_table_name": "tcustomer_old",
+      "new_target_table_name": "tcustomer_new",
+      "source_tables": [
+        "src_customer_master",
+        "src_customer_status"
+      ],
+      "owner_users": [
+        "customer_owner",
+        "data_support_tty"
+      ],
+      "support_team": "data_team_tty",
+      "business_description": "TTY customer dimension and lifecycle attributes.",
+      "criticality": "medium",
+      "issue_title": "TTY_TCUSTOMER_Column customer_status_code missing in Gavin3 output",
+      "focus_columns": [
+        "customer_status_code"
+      ],
+      "root_cause_family": "alias_mismatch",
+      "decision": "regression_detected",
+      "expected_keywords": [
+        "status_cd",
+        "customer_status_code",
+        "customer_status_label"
+      ],
+      "mapping_rows": [
+        {
+          "old_system": "Gavin2",
+          "new_system": "Gavin3",
+          "old_table_name": "tcustomer_old",
+          "new_table_name": "tcustomer_new",
+          "old_column_name": "customer_id",
+          "new_column_name": "CustomerIdentifier",
+          "data_type_old": "string",
+          "data_type_new": "string"
+        },
+        {
+          "old_system": "Gavin2",
+          "new_system": "Gavin3",
+          "old_table_name": "tcustomer_old",
+          "new_table_name": "tcustomer_new",
+          "old_column_name": "customer_name",
+          "new_column_name": "CustomerDisplayName",
+          "data_type_old": "string",
+          "data_type_new": "string"
+        },
+        {
+          "old_system": "Gavin2",
+          "new_system": "Gavin3",
+          "old_table_name": "tcustomer_old",
+          "new_table_name": "tcustomer_new",
+          "old_column_name": "status_cd",
+          "new_column_name": "customer_status_code",
+          "data_type_old": "string",
+          "data_type_new": "string"
+        }
+      ],
+      "old_script": "from pyspark.sql import functions as F\n\n\ndef transform(src_customer_master, src_customer_status):\n    return (\n        src_customer_master.alias(\"master\")\n        .join(src_customer_status.alias(\"status\"), on=\"customer_id\", how=\"left\")\n        .select(\n            F.col(\"master.customer_id\").alias(\"customer_id\"),\n            F.col(\"master.customer_name\").alias(\"customer_name\"),\n            F.col(\"status.status_cd\").alias(\"status_cd\"),\n        )\n    )\n",
+      "new_script": "from pyspark.sql import functions as F\n\n\ndef transform(src_customer_master, src_customer_status):\n    return (\n        src_customer_master.alias(\"master\")\n        .join(src_customer_status.alias(\"status\"), on=\"CustomerIdentifier\", how=\"left\")\n        .select(\n            F.col(\"master.CustomerIdentifier\").alias(\"CustomerIdentifier\"),\n            F.col(\"master.CustomerDisplayName\").alias(\"CustomerDisplayName\"),\n            F.col(\"status.CustomerStatusSourceCode\").alias(\"customer_status_label\"),\n        )\n    )\n",
+      "old_transformation_script_path": "/Users/abhishek/Desktop/Projects/Bug Management/fixtures/scripts/old/tty/tcustomer.py",
+      "new_transformation_script_path": "/Users/abhishek/Desktop/Projects/Bug Management/fixtures/scripts/new/tty/tcustomer.py"
+    },
+    {
+      "id": "fin_tinvoice_renamed_derivation",
+      "golden": true,
+      "scenario_type": "renamed_derivation",
+      "division": "FIN",
+      "table_name": "TINVOICE",
+      "old_target_table_name": "tinvoice_old",
+      "new_target_table_name": "tinvoice_new",
+      "source_tables": [
+        "src_invoice_header",
+        "src_invoice_tax"
+      ],
+      "owner_users": [
+        "fin_owner",
+        "data_support_fin"
+      ],
+      "support_team": "data_team_fin",
+      "business_description": "Invoice fact table with derived tax totals.",
+      "criticality": "high",
+      "issue_title": "FIN_TINVOICE_Column TotalTax missing",
+      "focus_columns": [
+        "TotalTax"
+      ],
+      "root_cause_family": "renamed_derivation",
+      "decision": "regression_detected",
+      "expected_keywords": [
+        "tax_ttl",
+        "TotalTax",
+        "InvoiceTaxValue"
+      ],
+      "mapping_rows": [
+        {
+          "old_system": "Gavin2",
+          "new_system": "Gavin3",
+          "old_table_name": "tinvoice_old",
+          "new_table_name": "tinvoice_new",
+          "old_column_name": "invoice_id",
+          "new_column_name": "InvoiceIdentifier",
+          "data_type_old": "string",
+          "data_type_new": "string"
+        },
+        {
+          "old_system": "Gavin2",
+          "new_system": "Gavin3",
+          "old_table_name": "tinvoice_old",
+          "new_table_name": "tinvoice_new",
+          "old_column_name": "invoice_amount",
+          "new_column_name": "NetInvoiceAmount",
+          "data_type_old": "decimal",
+          "data_type_new": "decimal"
+        },
+        {
+          "old_system": "Gavin2",
+          "new_system": "Gavin3",
+          "old_table_name": "tinvoice_old",
+          "new_table_name": "tinvoice_new",
+          "old_column_name": "tax_ttl",
+          "new_column_name": "TotalTax",
+          "data_type_old": "decimal",
+          "data_type_new": "decimal"
+        }
+      ],
+      "old_script": "from pyspark.sql import functions as F\n\n\ndef transform(src_invoice_header, src_invoice_tax):\n    return (\n        src_invoice_header.alias(\"header\")\n        .join(src_invoice_tax.alias(\"tax\"), on=\"invoice_id\", how=\"left\")\n        .withColumn(\"tax_ttl\", F.col(\"header.invoice_amount\") * F.col(\"tax.tax_rate\"))\n        .select(\"invoice_id\", \"invoice_amount\", \"tax_ttl\")\n    )\n",
+      "new_script": "from pyspark.sql import functions as F\n\n\ndef transform(src_invoice_header, src_invoice_tax):\n    return (\n        src_invoice_header.alias(\"header\")\n        .join(src_invoice_tax.alias(\"tax\"), on=\"InvoiceIdentifier\", how=\"left\")\n        .withColumn(\"InvoiceTaxValue\", F.col(\"header.NetInvoiceAmount\") * F.col(\"tax.AppliedTaxRate\"))\n        .select(\"InvoiceIdentifier\", \"NetInvoiceAmount\", \"InvoiceTaxValue\")\n    )\n",
+      "old_transformation_script_path": "/Users/abhishek/Desktop/Projects/Bug Management/fixtures/scripts/old/fin/tinvoice.py",
+      "new_transformation_script_path": "/Users/abhishek/Desktop/Projects/Bug Management/fixtures/scripts/new/fin/tinvoice.py"
+    },
+    {
+      "id": "fin_torder_join_null_spike",
+      "golden": true,
+      "scenario_type": "join_null_spike",
+      "division": "FIN",
+      "table_name": "TORDER",
+      "old_target_table_name": "torder_old",
+      "new_target_table_name": "torder_new",
+      "source_tables": [
+        "src_order_header",
+        "src_order_status"
+      ],
+      "owner_users": [
+        "fin_order_owner",
+        "data_support_fin"
+      ],
+      "support_team": "data_team_fin",
+      "business_description": "Financial orders and settlement status.",
+      "criticality": "high",
+      "issue_title": "FIN_TORDER_Column SettlementStatusCode mostly null after migration",
+      "focus_columns": [
+        "SettlementStatusCode"
+      ],
+      "root_cause_family": "join_null_spike",
+      "decision": "investigate_join_logic",
+      "expected_keywords": [
+        "settlement_flag",
+        "SettlementStatusCode",
+        "join"
+      ],
+      "mapping_rows": [
+        {
+          "old_system": "Gavin2",
+          "new_system": "Gavin3",
+          "old_table_name": "torder_old",
+          "new_table_name": "torder_new",
+          "old_column_name": "order_id",
+          "new_column_name": "OrderIdentifier",
+          "data_type_old": "string",
+          "data_type_new": "string"
+        },
+        {
+          "old_system": "Gavin2",
+          "new_system": "Gavin3",
+          "old_table_name": "torder_old",
+          "new_table_name": "torder_new",
+          "old_column_name": "region_code",
+          "new_column_name": "RegionalMarketCode",
+          "data_type_old": "string",
+          "data_type_new": "string"
+        },
+        {
+          "old_system": "Gavin2",
+          "new_system": "Gavin3",
+          "old_table_name": "torder_old",
+          "new_table_name": "torder_new",
+          "old_column_name": "settlement_flag",
+          "new_column_name": "SettlementStatusCode",
+          "data_type_old": "string",
+          "data_type_new": "string"
+        }
+      ],
+      "old_script": "from pyspark.sql import functions as F\n\n\ndef transform(src_order_header, src_order_status):\n    return (\n        src_order_header.alias(\"header\")\n        .join(src_order_status.alias(\"status\"), on=\"order_id\", how=\"left\")\n        .select(\"order_id\", F.col(\"status.settlement_flag\").alias(\"settlement_flag\"))\n    )\n",
+      "new_script": "from pyspark.sql import functions as F\n\n\ndef transform(src_order_header, src_order_status):\n    status_filtered = src_order_status.filter(F.col(\"StatusEffectiveTs\").isNotNull())\n    return (\n        src_order_header.alias(\"header\")\n        .join(status_filtered.alias(\"status\"), on=[\"OrderIdentifier\", \"RegionalMarketCode\"], how=\"left\")\n        .select(\"OrderIdentifier\", F.col(\"status.SettlementStatusCode\").alias(\"SettlementStatusCode\"))\n    )\n",
+      "old_transformation_script_path": "/Users/abhishek/Desktop/Projects/Bug Management/fixtures/scripts/old/fin/torder.py",
+      "new_transformation_script_path": "/Users/abhishek/Desktop/Projects/Bug Management/fixtures/scripts/new/fin/torder.py"
+    },
+    {
+      "id": "ops_tinventory_filter_row_loss",
+      "golden": true,
+      "scenario_type": "filter_row_loss",
+      "division": "OPS",
+      "table_name": "TINVENTORY",
+      "old_target_table_name": "tinventory_old",
+      "new_target_table_name": "tinventory_new",
+      "source_tables": [
+        "src_inventory",
+        "src_warehouse"
+      ],
+      "owner_users": [
+        "inventory_owner",
+        "data_support_ops"
+      ],
+      "support_team": "data_team_ops",
+      "business_description": "Inventory balance and warehouse status table.",
+      "criticality": "medium",
+      "issue_title": "OPS_TINVENTORY_Column WarehouseOperatingState row count dropped after filter",
+      "focus_columns": [
+        "WarehouseOperatingState"
+      ],
+      "root_cause_family": "filter_row_loss",
+      "decision": "investigate_filter_logic",
+      "expected_keywords": [
+        "warehouse_status",
+        "WarehouseOperatingState",
+        "filter"
+      ],
+      "mapping_rows": [
+        {
+          "old_system": "Gavin2",
+          "new_system": "Gavin3",
+          "old_table_name": "tinventory_old",
+          "new_table_name": "tinventory_new",
+          "old_column_name": "inventory_id",
+          "new_column_name": "InventoryIdentifier",
+          "data_type_old": "string",
+          "data_type_new": "string"
+        },
+        {
+          "old_system": "Gavin2",
+          "new_system": "Gavin3",
+          "old_table_name": "tinventory_old",
+          "new_table_name": "tinventory_new",
+          "old_column_name": "warehouse_status",
+          "new_column_name": "WarehouseOperatingState",
+          "data_type_old": "string",
+          "data_type_new": "string"
+        }
+      ],
+      "old_script": "from pyspark.sql import functions as F\n\n\ndef transform(src_inventory, src_warehouse):\n    return (\n        src_inventory.alias(\"inventory\")\n        .join(src_warehouse.alias(\"warehouse\"), on=\"warehouse_id\", how=\"left\")\n        .select(\"inventory_id\", F.col(\"warehouse.warehouse_status\").alias(\"warehouse_status\"))\n    )\n",
+      "new_script": "from pyspark.sql import functions as F\n\n\ndef transform(src_inventory, src_warehouse):\n    return (\n        src_inventory.alias(\"inventory\")\n        .join(src_warehouse.alias(\"warehouse\"), on=\"WarehouseIdentifier\", how=\"left\")\n        .filter(F.col(\"warehouse.WarehouseOperatingState\") == \"ACTIVE\")\n        .select(\"InventoryIdentifier\", F.col(\"warehouse.WarehouseOperatingState\").alias(\"WarehouseOperatingState\"))\n    )\n",
+      "old_transformation_script_path": "/Users/abhishek/Desktop/Projects/Bug Management/fixtures/scripts/old/ops/tinventory.py",
+      "new_transformation_script_path": "/Users/abhishek/Desktop/Projects/Bug Management/fixtures/scripts/new/ops/tinventory.py"
+    },
+    {
+      "id": "tty_tprofile_source_column_disappearance",
+      "golden": true,
+      "scenario_type": "source_column_disappearance",
+      "division": "TTY",
+      "table_name": "TPROFILE",
+      "old_target_table_name": "tprofile_old",
+      "new_target_table_name": "tprofile_new",
+      "source_tables": [
+        "src_profile_base",
+        "src_profile_audit"
+      ],
+      "owner_users": [
+        "profile_owner",
+        "data_support_tty"
+      ],
+      "support_team": "data_team_tty",
+      "business_description": "Profile dimension with audit attributes.",
+      "criticality": "medium",
+      "issue_title": "TTY_TPROFILE_Column ProfileReviewCompletedTs missing",
+      "focus_columns": [
+        "ProfileReviewCompletedTs"
+      ],
+      "root_cause_family": "source_column_disappearance",
+      "decision": "upstream_source_check_required",
+      "expected_keywords": [
+        "last_reviewed",
+        "ProfileReviewCompletedTs",
+        "upstream"
+      ],
+      "mapping_rows": [
+        {
+          "old_system": "Gavin2",
+          "new_system": "Gavin3",
+          "old_table_name": "tprofile_old",
+          "new_table_name": "tprofile_new",
+          "old_column_name": "profile_id",
+          "new_column_name": "ProfileIdentifier",
+          "data_type_old": "string",
+          "data_type_new": "string"
+        },
+        {
+          "old_system": "Gavin2",
+          "new_system": "Gavin3",
+          "old_table_name": "tprofile_old",
+          "new_table_name": "tprofile_new",
+          "old_column_name": "last_reviewed",
+          "new_column_name": "ProfileReviewCompletedTs",
+          "data_type_old": "timestamp",
+          "data_type_new": "timestamp"
+        }
+      ],
+      "old_script": "from pyspark.sql import functions as F\n\n\ndef transform(src_profile_base, src_profile_audit):\n    audit_cols = src_profile_audit.select(\"profile_id\", \"last_reviewed\")\n    return (\n        src_profile_base.alias(\"base\")\n        .join(audit_cols.alias(\"audit\"), on=\"profile_id\", how=\"left\")\n        .select(\"profile_id\", F.col(\"audit.last_reviewed\").alias(\"last_reviewed\"))\n    )\n",
+      "new_script": "from pyspark.sql import functions as F\n\n\ndef transform(src_profile_base, src_profile_audit):\n    audit_cols = src_profile_audit.select(\"ProfileIdentifier\")\n    return (\n        src_profile_base.alias(\"base\")\n        .join(audit_cols.alias(\"audit\"), on=\"ProfileIdentifier\", how=\"left\")\n        .select(\"ProfileIdentifier\")\n    )\n",
+      "old_transformation_script_path": "/Users/abhishek/Desktop/Projects/Bug Management/fixtures/scripts/old/tty/tprofile.py",
+      "new_transformation_script_path": "/Users/abhishek/Desktop/Projects/Bug Management/fixtures/scripts/new/tty/tprofile.py"
+    },
+    {
+      "id": "fin_tledger_wrong_business_alias",
+      "golden": true,
+      "scenario_type": "alias_mismatch",
+      "division": "FIN",
+      "table_name": "TLEDGER",
+      "old_target_table_name": "tledger_old",
+      "new_target_table_name": "tledger_new",
+      "source_tables": [
+        "src_ledger_header",
+        "src_ledger_status"
+      ],
+      "owner_users": [
+        "ledger_owner",
+        "data_support_fin"
+      ],
+      "support_team": "data_team_fin",
+      "business_description": "Ledger entries and posting status.",
+      "criticality": "high",
+      "issue_title": "FIN_TLEDGER_Column LedgerMigrationStatus missing",
+      "focus_columns": [
+        "LedgerMigrationStatus"
+      ],
+      "root_cause_family": "alias_mismatch",
+      "decision": "regression_detected",
+      "expected_keywords": [
+        "legacy_flag",
+        "LedgerMigrationStatus",
+        "LedgerMigrationStatusText"
+      ],
+      "mapping_rows": [
+        {
+          "old_system": "Gavin2",
+          "new_system": "Gavin3",
+          "old_table_name": "tledger_old",
+          "new_table_name": "tledger_new",
+          "old_column_name": "ledger_id",
+          "new_column_name": "LedgerIdentifier",
+          "data_type_old": "string",
+          "data_type_new": "string"
+        },
+        {
+          "old_system": "Gavin2",
+          "new_system": "Gavin3",
+          "old_table_name": "tledger_old",
+          "new_table_name": "tledger_new",
+          "old_column_name": "legacy_flag",
+          "new_column_name": "LedgerMigrationStatus",
+          "data_type_old": "string",
+          "data_type_new": "decimal"
+        }
+      ],
+      "old_script": "from pyspark.sql import functions as F\n\n\ndef transform(src_ledger_header, src_ledger_status):\n    return (\n        src_ledger_header.alias(\"master\")\n        .join(src_ledger_status.alias(\"status\"), on=\"ledger_id\", how=\"left\")\n        .select(\n            F.col(\"master.ledger_id\").alias(\"ledger_id\"),\n            F.col(\"status.legacy_flag\").alias(\"legacy_flag\"),\n        )\n    )\n",
+      "new_script": "from pyspark.sql import functions as F\n\n\ndef transform(src_ledger_header, src_ledger_status):\n    return (\n        src_ledger_header.alias(\"master\")\n        .join(src_ledger_status.alias(\"status\"), on=\"LedgerIdentifier\", how=\"left\")\n        .select(\n            F.col(\"master.LedgerIdentifier\").alias(\"LedgerIdentifier\"),\n            F.col(\"status.LedgerStatusSourceCode\").alias(\"LedgerMigrationStatusText\"),\n        )\n    )\n",
+      "old_transformation_script_path": "/Users/abhishek/Desktop/Projects/Bug Management/fixtures/scripts/old/fin/tledger.py",
+      "new_transformation_script_path": "/Users/abhishek/Desktop/Projects/Bug Management/fixtures/scripts/new/fin/tledger.py"
+    },
+    {
+      "id": "ops_tbalance_insufficient_evidence",
+      "golden": true,
+      "scenario_type": "insufficient_evidence",
+      "division": "OPS",
+      "table_name": "TBALANCE",
+      "old_target_table_name": "tbalance_old",
+      "new_target_table_name": "tbalance_new",
+      "source_tables": [
+        "src_balance_header",
+        "src_balance_snapshot"
+      ],
+      "owner_users": [
+        "balance_owner",
+        "data_support_ops"
+      ],
+      "support_team": "data_team_ops",
+      "business_description": "Balance tracking table with periodic snapshots.",
+      "criticality": "low",
+      "issue_title": "OPS_TBALANCE_Column GovernanceReviewIndex mismatch",
+      "focus_columns": [
+        "GovernanceReviewIndex"
+      ],
+      "root_cause_family": "insufficient_evidence",
+      "decision": "insufficient_evidence",
+      "expected_keywords": [
+        "review_score",
+        "GovernanceReviewIndex",
+        "insufficient"
+      ],
+      "mapping_rows": [
+        {
+          "old_system": "Gavin2",
+          "new_system": "Gavin3",
+          "old_table_name": "tbalance_old",
+          "new_table_name": "tbalance_new",
+          "old_column_name": "balance_id",
+          "new_column_name": "BalanceIdentifier",
+          "data_type_old": "string",
+          "data_type_new": "string"
+        },
+        {
+          "old_system": "Gavin2",
+          "new_system": "Gavin3",
+          "old_table_name": "tbalance_old",
+          "new_table_name": "tbalance_new",
+          "old_column_name": "review_score",
+          "new_column_name": "GovernanceReviewIndex",
+          "data_type_old": "decimal",
+          "data_type_new": "decimal"
+        }
+      ],
+      "old_script": "from pyspark.sql import functions as F\n\n\ndef transform(src_balance_header, src_balance_snapshot):\n    return src_balance_header.select(\"balance_id\", \"balance_amount\")\n",
+      "new_script": "from pyspark.sql import functions as F\n\n\ndef transform(src_balance_header, src_balance_snapshot):\n    return src_balance_snapshot.select(\"BalanceIdentifier\", \"balance_amount_snapshot\")\n",
+      "old_transformation_script_path": "/Users/abhishek/Desktop/Projects/Bug Management/fixtures/scripts/old/ops/tbalance.py",
+      "new_transformation_script_path": "/Users/abhishek/Desktop/Projects/Bug Management/fixtures/scripts/new/ops/tbalance.py"
+    },
+    {
+      "id": "generated_payment_projection_1",
+      "golden": false,
+      "scenario_type": "missing_final_select",
+      "division": "FIN",
+      "table_name": "TPAYMENTQUALITY",
+      "old_target_table_name": "tpaymentquality_old",
+      "new_target_table_name": "tpaymentquality_new",
+      "source_tables": [
+        "src_payment_base",
+        "src_payment_audit"
+      ],
+      "owner_users": [
+        "fin_owner",
+        "data_support_fin"
+      ],
+      "support_team": "data_team_fin",
+      "business_description": "Generated payment quality fixture.",
+      "criticality": "high",
+      "issue_title": "FIN_TPAYMENTQUALITY_Column PaymentQualityIndex missing",
+      "focus_columns": [
+        "PaymentQualityIndex"
+      ],
+      "root_cause_family": "missing_final_select",
+      "decision": "regression_detected",
+      "expected_keywords": [
+        "payment_score",
+        "PaymentQualityIndex"
+      ],
+      "mapping_rows": [
+        {
+          "old_system": "Gavin2",
+          "new_system": "Gavin3",
+          "old_table_name": "tpaymentquality_old",
+          "new_table_name": "tpaymentquality_new",
+          "old_column_name": "payment_id",
+          "new_column_name": "PaymentIdentifier",
+          "data_type_old": "string",
+          "data_type_new": "string"
+        },
+        {
+          "old_system": "Gavin2",
+          "new_system": "Gavin3",
+          "old_table_name": "tpaymentquality_old",
+          "new_table_name": "tpaymentquality_new",
+          "old_column_name": "payment_score",
+          "new_column_name": "PaymentQualityIndex",
+          "data_type_old": "decimal",
+          "data_type_new": "decimal"
+        }
+      ],
+      "old_script": "from pyspark.sql import functions as F\n\n\ndef transform(src_payment_base, src_payment_audit):\n    audit_snapshot = src_payment_audit.select(\n        \"payment_id\",\n        \"payment_score\",\n        \"score_updated_by\",\n    )\n\n    return (\n        src_payment_base.alias(\"base\")\n        .join(audit_snapshot.alias(\"audit\"), on=\"payment_id\", how=\"left\")\n        .select(\n            F.col(\"base.payment_id\").alias(\"payment_id\"),\n            F.col(\"base.payment_category\").alias(\"payment_category\"),\n            F.col(\"audit.payment_score\").alias(\"payment_score\"),\n            F.col(\"audit.score_updated_by\").alias(\"score_updated_by\"),\n        )\n    )\n",
+      "new_script": "from pyspark.sql import functions as F\n\n\ndef transform(src_payment_base, src_payment_audit):\n    audit_snapshot = src_payment_audit.select(\n        \"PaymentIdentifier\",\n        \"ScoreUpdatedByUser\",\n    )\n\n    return (\n        src_payment_base.alias(\"base\")\n        .join(audit_snapshot.alias(\"audit\"), on=\"PaymentIdentifier\", how=\"left\")\n        .select(\n            F.col(\"base.PaymentIdentifier\").alias(\"PaymentIdentifier\"),\n            F.col(\"base.PaymentCategoryName\").alias(\"PaymentCategoryName\"),\n            F.col(\"audit.ScoreUpdatedByUser\").alias(\"ScoreUpdatedByUser\"),\n        )\n    )\n",
+      "old_transformation_script_path": "/Users/abhishek/Desktop/Projects/Bug Management/fixtures/scripts/old/fin/tpaymentquality.py",
+      "new_transformation_script_path": "/Users/abhishek/Desktop/Projects/Bug Management/fixtures/scripts/new/fin/tpaymentquality.py"
+    },
+    {
+      "id": "generated_shipment_alias_2",
+      "golden": false,
+      "scenario_type": "alias_mismatch",
+      "division": "OPS",
+      "table_name": "TSHIPMENT",
+      "old_target_table_name": "tshipment_old",
+      "new_target_table_name": "tshipment_new",
+      "source_tables": [
+        "src_shipment_base",
+        "src_shipment_status"
+      ],
+      "owner_users": [
+        "ops_owner",
+        "data_support_ops"
+      ],
+      "support_team": "data_team_ops",
+      "business_description": "Generated shipment status fixture.",
+      "criticality": "high",
+      "issue_title": "OPS_TSHIPMENT_Column ShipmentStatus missing",
+      "focus_columns": [
+        "ShipmentStatus"
+      ],
+      "root_cause_family": "alias_mismatch",
+      "decision": "regression_detected",
+      "expected_keywords": [
+        "shpmnt_status",
+        "ShipmentStatus"
+      ],
+      "mapping_rows": [
+        {
+          "old_system": "Gavin2",
+          "new_system": "Gavin3",
+          "old_table_name": "tshipment_old",
+          "new_table_name": "tshipment_new",
+          "old_column_name": "shipment_id",
+          "new_column_name": "ShipmentIdentifier",
+          "data_type_old": "string",
+          "data_type_new": "string"
+        },
+        {
+          "old_system": "Gavin2",
+          "new_system": "Gavin3",
+          "old_table_name": "tshipment_old",
+          "new_table_name": "tshipment_new",
+          "old_column_name": "shpmnt_status",
+          "new_column_name": "ShipmentStatus",
+          "data_type_old": "string",
+          "data_type_new": "string"
+        }
+      ],
+      "old_script": "from pyspark.sql import functions as F\n\n\ndef transform(src_shipment_base, src_shipment_status):\n    return (\n        src_shipment_base.alias(\"master\")\n        .join(src_shipment_status.alias(\"status\"), on=\"shipment_id\", how=\"left\")\n        .select(\n            F.col(\"master.shipment_id\").alias(\"shipment_id\"),\n            F.col(\"status.shpmnt_status\").alias(\"shpmnt_status\"),\n        )\n    )\n",
+      "new_script": "from pyspark.sql import functions as F\n\n\ndef transform(src_shipment_base, src_shipment_status):\n    return (\n        src_shipment_base.alias(\"master\")\n        .join(src_shipment_status.alias(\"status\"), on=\"ShipmentIdentifier\", how=\"left\")\n        .select(\n            F.col(\"master.ShipmentIdentifier\").alias(\"ShipmentIdentifier\"),\n            F.col(\"status.ShipmentStatusSourceCode\").alias(\"ShipmentStatusLabel\"),\n        )\n    )\n",
+      "old_transformation_script_path": "/Users/abhishek/Desktop/Projects/Bug Management/fixtures/scripts/old/ops/tshipment.py",
+      "new_transformation_script_path": "/Users/abhishek/Desktop/Projects/Bug Management/fixtures/scripts/new/ops/tshipment.py"
+    },
+    {
+      "id": "generated_invoice_derivation_3",
+      "golden": false,
+      "scenario_type": "renamed_derivation",
+      "division": "FIN",
+      "table_name": "TBILLINGVARIANCE",
+      "old_target_table_name": "tbillingvariance_old",
+      "new_target_table_name": "tbillingvariance_new",
+      "source_tables": [
+        "src_billing_base",
+        "src_billing_adjustment"
+      ],
+      "owner_users": [
+        "billing_owner",
+        "data_support_fin"
+      ],
+      "support_team": "data_team_fin",
+      "business_description": "Generated billing variance fixture.",
+      "criticality": "medium",
+      "issue_title": "FIN_TBILLINGVARIANCE_Column BillingVarianceAmount missing",
+      "focus_columns": [
+        "BillingVarianceAmount"
+      ],
+      "root_cause_family": "renamed_derivation",
+      "decision": "regression_detected",
+      "expected_keywords": [
+        "invoice_variance",
+        "BillingVarianceAmount"
+      ],
+      "mapping_rows": [
+        {
+          "old_system": "Gavin2",
+          "new_system": "Gavin3",
+          "old_table_name": "tbillingvariance_old",
+          "new_table_name": "tbillingvariance_new",
+          "old_column_name": "bill_id",
+          "new_column_name": "BillingIdentifier",
+          "data_type_old": "string",
+          "data_type_new": "string"
+        },
+        {
+          "old_system": "Gavin2",
+          "new_system": "Gavin3",
+          "old_table_name": "tbillingvariance_old",
+          "new_table_name": "tbillingvariance_new",
+          "old_column_name": "invoice_variance",
+          "new_column_name": "BillingVarianceAmount",
+          "data_type_old": "decimal",
+          "data_type_new": "decimal"
+        }
+      ],
+      "old_script": "from pyspark.sql import functions as F\n\n\ndef transform(src_billing_base, src_billing_adjustment):\n    return (\n        src_billing_base.alias(\"header\")\n        .join(src_billing_adjustment.alias(\"tax\"), on=\"bill_id\", how=\"left\")\n        .withColumn(\"invoice_variance\", F.col(\"header.invoice_amount\") * F.col(\"tax.adjustment_ratio\"))\n        .select(\"bill_id\", \"invoice_amount\", \"invoice_variance\")\n    )\n",
+      "new_script": "from pyspark.sql import functions as F\n\n\ndef transform(src_billing_base, src_billing_adjustment):\n    return (\n        src_billing_base.alias(\"header\")\n        .join(src_billing_adjustment.alias(\"tax\"), on=\"BillingIdentifier\", how=\"left\")\n        .withColumn(\"BillingVarianceValue\", F.col(\"header.BillingAmountValue\") * F.col(\"tax.AdjustmentRatioValue\"))\n        .select(\"BillingIdentifier\", \"BillingAmountValue\", \"BillingVarianceValue\")\n    )\n",
+      "old_transformation_script_path": "/Users/abhishek/Desktop/Projects/Bug Management/fixtures/scripts/old/fin/tbillingvariance.py",
+      "new_transformation_script_path": "/Users/abhishek/Desktop/Projects/Bug Management/fixtures/scripts/new/fin/tbillingvariance.py"
+    },
+    {
+      "id": "generated_profile_source_4",
+      "golden": false,
+      "scenario_type": "source_column_disappearance",
+      "division": "TTY",
+      "table_name": "TPROFILEAUDIT",
+      "old_target_table_name": "tprofileaudit_old",
+      "new_target_table_name": "tprofileaudit_new",
+      "source_tables": [
+        "src_profile_stage",
+        "src_profile_history"
+      ],
+      "owner_users": [
+        "profile_owner",
+        "data_support_tty"
+      ],
+      "support_team": "data_team_tty",
+      "business_description": "Generated profile audit fixture.",
+      "criticality": "medium",
+      "issue_title": "TTY_TPROFILEAUDIT_Column ProfileGovernanceReviewTs missing",
+      "focus_columns": [
+        "ProfileGovernanceReviewTs"
+      ],
+      "root_cause_family": "source_column_disappearance",
+      "decision": "upstream_source_check_required",
+      "expected_keywords": [
+        "reviewed_on",
+        "ProfileGovernanceReviewTs"
+      ],
+      "mapping_rows": [
+        {
+          "old_system": "Gavin2",
+          "new_system": "Gavin3",
+          "old_table_name": "tprofileaudit_old",
+          "new_table_name": "tprofileaudit_new",
+          "old_column_name": "profile_key",
+          "new_column_name": "ProfileIdentifier",
+          "data_type_old": "string",
+          "data_type_new": "string"
+        },
+        {
+          "old_system": "Gavin2",
+          "new_system": "Gavin3",
+          "old_table_name": "tprofileaudit_old",
+          "new_table_name": "tprofileaudit_new",
+          "old_column_name": "reviewed_on",
+          "new_column_name": "ProfileGovernanceReviewTs",
+          "data_type_old": "timestamp",
+          "data_type_new": "timestamp"
+        }
+      ],
+      "old_script": "from pyspark.sql import functions as F\n\n\ndef transform(src_profile_stage, src_profile_history):\n    audit_cols = src_profile_history.select(\"profile_key\", \"reviewed_on\")\n    return (\n        src_profile_stage.alias(\"base\")\n        .join(audit_cols.alias(\"audit\"), on=\"profile_key\", how=\"left\")\n        .select(\"profile_key\", F.col(\"audit.reviewed_on\").alias(\"reviewed_on\"))\n    )\n",
+      "new_script": "from pyspark.sql import functions as F\n\n\ndef transform(src_profile_stage, src_profile_history):\n    audit_cols = src_profile_history.select(\"ProfileIdentifier\")\n    return (\n        src_profile_stage.alias(\"base\")\n        .join(audit_cols.alias(\"audit\"), on=\"ProfileIdentifier\", how=\"left\")\n        .select(\"ProfileIdentifier\")\n    )\n",
+      "old_transformation_script_path": "/Users/abhishek/Desktop/Projects/Bug Management/fixtures/scripts/old/tty/tprofileaudit.py",
+      "new_transformation_script_path": "/Users/abhishek/Desktop/Projects/Bug Management/fixtures/scripts/new/tty/tprofileaudit.py"
+    }
+  ]
+}
