@@ -85,8 +85,8 @@
       ],
       "old_script": "from pyspark.sql import functions as F\n\n\ndef transform(src_tentity_base, src_tentity_audit):\n    audit_snapshot = src_tentity_audit.select(\n        \"entity_id\",\n        \"date_updated\",\n        \"updated_by\",\n    )\n\n    return (\n        src_tentity_base.alias(\"base\")\n        .join(audit_snapshot.alias(\"audit\"), on=\"entity_id\", how=\"left\")\n        .select(\n            F.col(\"base.entity_id\").alias(\"entity_id\"),\n            F.col(\"base.entity_name\").alias(\"entity_name\"),\n            F.col(\"audit.date_updated\").alias(\"date_updated\"),\n            F.col(\"audit.updated_by\").alias(\"updated_by\"),\n        )\n    )\n",
       "new_script": "from pyspark.sql import functions as F\n\n\ndef transform(src_tentity_base, src_tentity_audit):\n    audit_snapshot = src_tentity_audit.select(\n        \"EntityIdentifier\",\n        \"UpdatedByUser\",\n    )\n\n    return (\n        src_tentity_base.alias(\"base\")\n        .join(audit_snapshot.alias(\"audit\"), on=\"EntityIdentifier\", how=\"left\")\n        .select(\n            F.col(\"base.EntityIdentifier\").alias(\"EntityIdentifier\"),\n            F.col(\"base.EntityDisplayName\").alias(\"EntityDisplayName\"),\n            F.col(\"audit.UpdatedByUser\").alias(\"UpdatedByUser\"),\n        )\n    )\n",
-      "old_transformation_script_path": "/Users/abhishek/Desktop/Projects/Bug Management/fixtures/scripts/old/tty/tentity.py",
-      "new_transformation_script_path": "/Users/abhishek/Desktop/Projects/Bug Management/fixtures/scripts/new/tty/tentity.py"
+      "old_transformation_script_path": "fixtures/scripts/old/tty/tentity.py",
+      "new_transformation_script_path": "fixtures/scripts/new/tty/tentity.py"
     },
     {
       "id": "tty_tcustomer_wrong_new_alias",
@@ -152,8 +152,8 @@
       ],
       "old_script": "from pyspark.sql import functions as F\n\n\ndef transform(src_customer_master, src_customer_status):\n    return (\n        src_customer_master.alias(\"master\")\n        .join(src_customer_status.alias(\"status\"), on=\"customer_id\", how=\"left\")\n        .select(\n            F.col(\"master.customer_id\").alias(\"customer_id\"),\n            F.col(\"master.customer_name\").alias(\"customer_name\"),\n            F.col(\"status.status_cd\").alias(\"status_cd\"),\n        )\n    )\n",
       "new_script": "from pyspark.sql import functions as F\n\n\ndef transform(src_customer_master, src_customer_status):\n    return (\n        src_customer_master.alias(\"master\")\n        .join(src_customer_status.alias(\"status\"), on=\"CustomerIdentifier\", how=\"left\")\n        .select(\n            F.col(\"master.CustomerIdentifier\").alias(\"CustomerIdentifier\"),\n            F.col(\"master.CustomerDisplayName\").alias(\"CustomerDisplayName\"),\n            F.col(\"status.CustomerStatusSourceCode\").alias(\"customer_status_label\"),\n        )\n    )\n",
-      "old_transformation_script_path": "/Users/abhishek/Desktop/Projects/Bug Management/fixtures/scripts/old/tty/tcustomer.py",
-      "new_transformation_script_path": "/Users/abhishek/Desktop/Projects/Bug Management/fixtures/scripts/new/tty/tcustomer.py"
+      "old_transformation_script_path": "fixtures/scripts/old/tty/tcustomer.py",
+      "new_transformation_script_path": "fixtures/scripts/new/tty/tcustomer.py"
     },
     {
       "id": "fin_tinvoice_renamed_derivation",
@@ -219,8 +219,8 @@
       ],
       "old_script": "from pyspark.sql import functions as F\n\n\ndef transform(src_invoice_header, src_invoice_tax):\n    return (\n        src_invoice_header.alias(\"header\")\n        .join(src_invoice_tax.alias(\"tax\"), on=\"invoice_id\", how=\"left\")\n        .withColumn(\"tax_ttl\", F.col(\"header.invoice_amount\") * F.col(\"tax.tax_rate\"))\n        .select(\"invoice_id\", \"invoice_amount\", \"tax_ttl\")\n    )\n",
       "new_script": "from pyspark.sql import functions as F\n\n\ndef transform(src_invoice_header, src_invoice_tax):\n    return (\n        src_invoice_header.alias(\"header\")\n        .join(src_invoice_tax.alias(\"tax\"), on=\"InvoiceIdentifier\", how=\"left\")\n        .withColumn(\"InvoiceTaxValue\", F.col(\"header.NetInvoiceAmount\") * F.col(\"tax.AppliedTaxRate\"))\n        .select(\"InvoiceIdentifier\", \"NetInvoiceAmount\", \"InvoiceTaxValue\")\n    )\n",
-      "old_transformation_script_path": "/Users/abhishek/Desktop/Projects/Bug Management/fixtures/scripts/old/fin/tinvoice.py",
-      "new_transformation_script_path": "/Users/abhishek/Desktop/Projects/Bug Management/fixtures/scripts/new/fin/tinvoice.py"
+      "old_transformation_script_path": "fixtures/scripts/old/fin/tinvoice.py",
+      "new_transformation_script_path": "fixtures/scripts/new/fin/tinvoice.py"
     },
     {
       "id": "fin_torder_join_null_spike",
@@ -286,8 +286,8 @@
       ],
       "old_script": "from pyspark.sql import functions as F\n\n\ndef transform(src_order_header, src_order_status):\n    return (\n        src_order_header.alias(\"header\")\n        .join(src_order_status.alias(\"status\"), on=\"order_id\", how=\"left\")\n        .select(\"order_id\", F.col(\"status.settlement_flag\").alias(\"settlement_flag\"))\n    )\n",
       "new_script": "from pyspark.sql import functions as F\n\n\ndef transform(src_order_header, src_order_status):\n    status_filtered = src_order_status.filter(F.col(\"StatusEffectiveTs\").isNotNull())\n    return (\n        src_order_header.alias(\"header\")\n        .join(status_filtered.alias(\"status\"), on=[\"OrderIdentifier\", \"RegionalMarketCode\"], how=\"left\")\n        .select(\"OrderIdentifier\", F.col(\"status.SettlementStatusCode\").alias(\"SettlementStatusCode\"))\n    )\n",
-      "old_transformation_script_path": "/Users/abhishek/Desktop/Projects/Bug Management/fixtures/scripts/old/fin/torder.py",
-      "new_transformation_script_path": "/Users/abhishek/Desktop/Projects/Bug Management/fixtures/scripts/new/fin/torder.py"
+      "old_transformation_script_path": "fixtures/scripts/old/fin/torder.py",
+      "new_transformation_script_path": "fixtures/scripts/new/fin/torder.py"
     },
     {
       "id": "ops_tinventory_filter_row_loss",
@@ -343,8 +343,8 @@
       ],
       "old_script": "from pyspark.sql import functions as F\n\n\ndef transform(src_inventory, src_warehouse):\n    return (\n        src_inventory.alias(\"inventory\")\n        .join(src_warehouse.alias(\"warehouse\"), on=\"warehouse_id\", how=\"left\")\n        .select(\"inventory_id\", F.col(\"warehouse.warehouse_status\").alias(\"warehouse_status\"))\n    )\n",
       "new_script": "from pyspark.sql import functions as F\n\n\ndef transform(src_inventory, src_warehouse):\n    return (\n        src_inventory.alias(\"inventory\")\n        .join(src_warehouse.alias(\"warehouse\"), on=\"WarehouseIdentifier\", how=\"left\")\n        .filter(F.col(\"warehouse.WarehouseOperatingState\") == \"ACTIVE\")\n        .select(\"InventoryIdentifier\", F.col(\"warehouse.WarehouseOperatingState\").alias(\"WarehouseOperatingState\"))\n    )\n",
-      "old_transformation_script_path": "/Users/abhishek/Desktop/Projects/Bug Management/fixtures/scripts/old/ops/tinventory.py",
-      "new_transformation_script_path": "/Users/abhishek/Desktop/Projects/Bug Management/fixtures/scripts/new/ops/tinventory.py"
+      "old_transformation_script_path": "fixtures/scripts/old/ops/tinventory.py",
+      "new_transformation_script_path": "fixtures/scripts/new/ops/tinventory.py"
     },
     {
       "id": "tty_tprofile_source_column_disappearance",
@@ -400,8 +400,8 @@
       ],
       "old_script": "from pyspark.sql import functions as F\n\n\ndef transform(src_profile_base, src_profile_audit):\n    audit_cols = src_profile_audit.select(\"profile_id\", \"last_reviewed\")\n    return (\n        src_profile_base.alias(\"base\")\n        .join(audit_cols.alias(\"audit\"), on=\"profile_id\", how=\"left\")\n        .select(\"profile_id\", F.col(\"audit.last_reviewed\").alias(\"last_reviewed\"))\n    )\n",
       "new_script": "from pyspark.sql import functions as F\n\n\ndef transform(src_profile_base, src_profile_audit):\n    audit_cols = src_profile_audit.select(\"ProfileIdentifier\")\n    return (\n        src_profile_base.alias(\"base\")\n        .join(audit_cols.alias(\"audit\"), on=\"ProfileIdentifier\", how=\"left\")\n        .select(\"ProfileIdentifier\")\n    )\n",
-      "old_transformation_script_path": "/Users/abhishek/Desktop/Projects/Bug Management/fixtures/scripts/old/tty/tprofile.py",
-      "new_transformation_script_path": "/Users/abhishek/Desktop/Projects/Bug Management/fixtures/scripts/new/tty/tprofile.py"
+      "old_transformation_script_path": "fixtures/scripts/old/tty/tprofile.py",
+      "new_transformation_script_path": "fixtures/scripts/new/tty/tprofile.py"
     },
     {
       "id": "fin_tledger_wrong_business_alias",
@@ -457,8 +457,8 @@
       ],
       "old_script": "from pyspark.sql import functions as F\n\n\ndef transform(src_ledger_header, src_ledger_status):\n    return (\n        src_ledger_header.alias(\"master\")\n        .join(src_ledger_status.alias(\"status\"), on=\"ledger_id\", how=\"left\")\n        .select(\n            F.col(\"master.ledger_id\").alias(\"ledger_id\"),\n            F.col(\"status.legacy_flag\").alias(\"legacy_flag\"),\n        )\n    )\n",
       "new_script": "from pyspark.sql import functions as F\n\n\ndef transform(src_ledger_header, src_ledger_status):\n    return (\n        src_ledger_header.alias(\"master\")\n        .join(src_ledger_status.alias(\"status\"), on=\"LedgerIdentifier\", how=\"left\")\n        .select(\n            F.col(\"master.LedgerIdentifier\").alias(\"LedgerIdentifier\"),\n            F.col(\"status.LedgerStatusSourceCode\").alias(\"LedgerMigrationStatusText\"),\n        )\n    )\n",
-      "old_transformation_script_path": "/Users/abhishek/Desktop/Projects/Bug Management/fixtures/scripts/old/fin/tledger.py",
-      "new_transformation_script_path": "/Users/abhishek/Desktop/Projects/Bug Management/fixtures/scripts/new/fin/tledger.py"
+      "old_transformation_script_path": "fixtures/scripts/old/fin/tledger.py",
+      "new_transformation_script_path": "fixtures/scripts/new/fin/tledger.py"
     },
     {
       "id": "ops_tbalance_insufficient_evidence",
@@ -514,8 +514,8 @@
       ],
       "old_script": "from pyspark.sql import functions as F\n\n\ndef transform(src_balance_header, src_balance_snapshot):\n    return src_balance_header.select(\"balance_id\", \"balance_amount\")\n",
       "new_script": "from pyspark.sql import functions as F\n\n\ndef transform(src_balance_header, src_balance_snapshot):\n    return src_balance_snapshot.select(\"BalanceIdentifier\", \"balance_amount_snapshot\")\n",
-      "old_transformation_script_path": "/Users/abhishek/Desktop/Projects/Bug Management/fixtures/scripts/old/ops/tbalance.py",
-      "new_transformation_script_path": "/Users/abhishek/Desktop/Projects/Bug Management/fixtures/scripts/new/ops/tbalance.py"
+      "old_transformation_script_path": "fixtures/scripts/old/ops/tbalance.py",
+      "new_transformation_script_path": "fixtures/scripts/new/ops/tbalance.py"
     },
     {
       "id": "generated_payment_projection_1",
@@ -570,8 +570,8 @@
       ],
       "old_script": "from pyspark.sql import functions as F\n\n\ndef transform(src_payment_base, src_payment_audit):\n    audit_snapshot = src_payment_audit.select(\n        \"payment_id\",\n        \"payment_score\",\n        \"score_updated_by\",\n    )\n\n    return (\n        src_payment_base.alias(\"base\")\n        .join(audit_snapshot.alias(\"audit\"), on=\"payment_id\", how=\"left\")\n        .select(\n            F.col(\"base.payment_id\").alias(\"payment_id\"),\n            F.col(\"base.payment_category\").alias(\"payment_category\"),\n            F.col(\"audit.payment_score\").alias(\"payment_score\"),\n            F.col(\"audit.score_updated_by\").alias(\"score_updated_by\"),\n        )\n    )\n",
       "new_script": "from pyspark.sql import functions as F\n\n\ndef transform(src_payment_base, src_payment_audit):\n    audit_snapshot = src_payment_audit.select(\n        \"PaymentIdentifier\",\n        \"ScoreUpdatedByUser\",\n    )\n\n    return (\n        src_payment_base.alias(\"base\")\n        .join(audit_snapshot.alias(\"audit\"), on=\"PaymentIdentifier\", how=\"left\")\n        .select(\n            F.col(\"base.PaymentIdentifier\").alias(\"PaymentIdentifier\"),\n            F.col(\"base.PaymentCategoryName\").alias(\"PaymentCategoryName\"),\n            F.col(\"audit.ScoreUpdatedByUser\").alias(\"ScoreUpdatedByUser\"),\n        )\n    )\n",
-      "old_transformation_script_path": "/Users/abhishek/Desktop/Projects/Bug Management/fixtures/scripts/old/fin/tpaymentquality.py",
-      "new_transformation_script_path": "/Users/abhishek/Desktop/Projects/Bug Management/fixtures/scripts/new/fin/tpaymentquality.py"
+      "old_transformation_script_path": "fixtures/scripts/old/fin/tpaymentquality.py",
+      "new_transformation_script_path": "fixtures/scripts/new/fin/tpaymentquality.py"
     },
     {
       "id": "generated_shipment_alias_2",
@@ -626,8 +626,8 @@
       ],
       "old_script": "from pyspark.sql import functions as F\n\n\ndef transform(src_shipment_base, src_shipment_status):\n    return (\n        src_shipment_base.alias(\"master\")\n        .join(src_shipment_status.alias(\"status\"), on=\"shipment_id\", how=\"left\")\n        .select(\n            F.col(\"master.shipment_id\").alias(\"shipment_id\"),\n            F.col(\"status.shpmnt_status\").alias(\"shpmnt_status\"),\n        )\n    )\n",
       "new_script": "from pyspark.sql import functions as F\n\n\ndef transform(src_shipment_base, src_shipment_status):\n    return (\n        src_shipment_base.alias(\"master\")\n        .join(src_shipment_status.alias(\"status\"), on=\"ShipmentIdentifier\", how=\"left\")\n        .select(\n            F.col(\"master.ShipmentIdentifier\").alias(\"ShipmentIdentifier\"),\n            F.col(\"status.ShipmentStatusSourceCode\").alias(\"ShipmentStatusLabel\"),\n        )\n    )\n",
-      "old_transformation_script_path": "/Users/abhishek/Desktop/Projects/Bug Management/fixtures/scripts/old/ops/tshipment.py",
-      "new_transformation_script_path": "/Users/abhishek/Desktop/Projects/Bug Management/fixtures/scripts/new/ops/tshipment.py"
+      "old_transformation_script_path": "fixtures/scripts/old/ops/tshipment.py",
+      "new_transformation_script_path": "fixtures/scripts/new/ops/tshipment.py"
     },
     {
       "id": "generated_invoice_derivation_3",
@@ -682,8 +682,8 @@
       ],
       "old_script": "from pyspark.sql import functions as F\n\n\ndef transform(src_billing_base, src_billing_adjustment):\n    return (\n        src_billing_base.alias(\"header\")\n        .join(src_billing_adjustment.alias(\"tax\"), on=\"bill_id\", how=\"left\")\n        .withColumn(\"invoice_variance\", F.col(\"header.invoice_amount\") * F.col(\"tax.adjustment_ratio\"))\n        .select(\"bill_id\", \"invoice_amount\", \"invoice_variance\")\n    )\n",
       "new_script": "from pyspark.sql import functions as F\n\n\ndef transform(src_billing_base, src_billing_adjustment):\n    return (\n        src_billing_base.alias(\"header\")\n        .join(src_billing_adjustment.alias(\"tax\"), on=\"BillingIdentifier\", how=\"left\")\n        .withColumn(\"BillingVarianceValue\", F.col(\"header.BillingAmountValue\") * F.col(\"tax.AdjustmentRatioValue\"))\n        .select(\"BillingIdentifier\", \"BillingAmountValue\", \"BillingVarianceValue\")\n    )\n",
-      "old_transformation_script_path": "/Users/abhishek/Desktop/Projects/Bug Management/fixtures/scripts/old/fin/tbillingvariance.py",
-      "new_transformation_script_path": "/Users/abhishek/Desktop/Projects/Bug Management/fixtures/scripts/new/fin/tbillingvariance.py"
+      "old_transformation_script_path": "fixtures/scripts/old/fin/tbillingvariance.py",
+      "new_transformation_script_path": "fixtures/scripts/new/fin/tbillingvariance.py"
     },
     {
       "id": "generated_profile_source_4",
@@ -738,8 +738,8 @@
       ],
       "old_script": "from pyspark.sql import functions as F\n\n\ndef transform(src_profile_stage, src_profile_history):\n    audit_cols = src_profile_history.select(\"profile_key\", \"reviewed_on\")\n    return (\n        src_profile_stage.alias(\"base\")\n        .join(audit_cols.alias(\"audit\"), on=\"profile_key\", how=\"left\")\n        .select(\"profile_key\", F.col(\"audit.reviewed_on\").alias(\"reviewed_on\"))\n    )\n",
       "new_script": "from pyspark.sql import functions as F\n\n\ndef transform(src_profile_stage, src_profile_history):\n    audit_cols = src_profile_history.select(\"ProfileIdentifier\")\n    return (\n        src_profile_stage.alias(\"base\")\n        .join(audit_cols.alias(\"audit\"), on=\"ProfileIdentifier\", how=\"left\")\n        .select(\"ProfileIdentifier\")\n    )\n",
-      "old_transformation_script_path": "/Users/abhishek/Desktop/Projects/Bug Management/fixtures/scripts/old/tty/tprofileaudit.py",
-      "new_transformation_script_path": "/Users/abhishek/Desktop/Projects/Bug Management/fixtures/scripts/new/tty/tprofileaudit.py"
+      "old_transformation_script_path": "fixtures/scripts/old/tty/tprofileaudit.py",
+      "new_transformation_script_path": "fixtures/scripts/new/tty/tprofileaudit.py"
     }
   ]
 }

@@ -92,8 +92,8 @@ async def resolve_metadata(payload: System2Request) -> ResolvedMetadata:
         old_target_table_name=old_table,
         new_target_table_name=new_table,
         source_tables=_split_csv(row["source_tables"]),
-        old_transformation_script_path=row["old_transformation_script_path"],
-        new_transformation_script_path=row["new_transformation_script_path"],
+        old_transformation_script_path=_resolve_script_path(row["old_transformation_script_path"]),
+        new_transformation_script_path=_resolve_script_path(row["new_transformation_script_path"]),
         owner_users=_split_csv(row["owner_users"]),
         support_team=row["support_team"],
         business_description=row["business_description"],
@@ -146,3 +146,25 @@ def _serialize_mapping_rows(dataframe: pd.DataFrame) -> List[ColumnMappingRecord
         )
         for item in dataframe.to_dict(orient="records")
     ]
+
+
+def _resolve_script_path(raw_path: str) -> str:
+    if not raw_path:
+        return raw_path
+
+    candidate = Path(str(raw_path))
+    if candidate.exists():
+        return str(candidate.resolve())
+
+    path_parts = candidate.parts
+    if "fixtures" in path_parts:
+        fixtures_index = path_parts.index("fixtures")
+        normalized = EXCEL_ROOT.parents[1] / Path(*path_parts[fixtures_index:])
+        if normalized.exists():
+            return str(normalized.resolve())
+
+    repo_relative = EXCEL_ROOT.parents[1] / candidate
+    if repo_relative.exists():
+        return str(repo_relative.resolve())
+
+    return str(candidate)

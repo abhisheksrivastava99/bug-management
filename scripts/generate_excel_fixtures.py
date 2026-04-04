@@ -54,8 +54,8 @@ def main() -> None:
                 "source_tables": ",".join(scenario["source_tables"]),
                 "old_target_table_name": scenario["old_target_table_name"],
                 "new_target_table_name": scenario["new_target_table_name"],
-                "old_transformation_script_path": str(old_path),
-                "new_transformation_script_path": str(new_path),
+                "old_transformation_script_path": str(old_path.relative_to(REPO_ROOT)),
+                "new_transformation_script_path": str(new_path.relative_to(REPO_ROOT)),
                 "owner_users": ",".join(scenario["owner_users"]),
                 "support_team": scenario["support_team"],
                 "business_description": scenario["business_description"],
@@ -66,8 +66,8 @@ def main() -> None:
         for row in scenario["mapping_rows"]:
             mapping_rows.append(row)
 
-        scenario["old_transformation_script_path"] = str(old_path)
-        scenario["new_transformation_script_path"] = str(new_path)
+        scenario["old_transformation_script_path"] = str(old_path.relative_to(REPO_ROOT))
+        scenario["new_transformation_script_path"] = str(new_path.relative_to(REPO_ROOT))
 
     pd.DataFrame(metadata_rows).to_excel(EXCEL_DIR / "table_metadata.xlsx", index=False)
     pd.DataFrame(mapping_rows)[MAPPING_COLUMNS].to_excel(EXCEL_DIR / "column_mapping.xlsx", index=False)
