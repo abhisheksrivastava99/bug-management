@@ -16,7 +16,6 @@ services:
   - type: web
     name: bug-management-ui
     runtime: static
-    plan: free
     rootDir: apps/chat-ui
     buildCommand: npm install && npm run build
     staticPublishPath: dist
