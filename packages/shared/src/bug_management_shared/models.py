@@ -92,6 +92,21 @@ class ScriptAnalysis(BaseModel):
     confidence: float = 0.0
 
 
+class SqlQueryResult(BaseModel):
+    label: str
+    sql: str
+    columns: List[str] = Field(default_factory=list)
+    rows: List[dict] = Field(default_factory=list)
+    row_count: int = 0
+
+
+class SqlDiagnostic(BaseModel):
+    name: str
+    purpose: str
+    query: SqlQueryResult
+    findings: List[str] = Field(default_factory=list)
+
+
 class IncidentAnalysisRequest(BaseModel):
     system1: System1Result
     system2: ResolvedMetadata
@@ -124,6 +139,26 @@ class System3Result(BaseModel):
     analysis_warnings: List[str] = Field(default_factory=list)
 
 
+class System4Request(BaseModel):
+    system1: System1Result
+    system2: ResolvedMetadata
+    new_analysis: ScriptAnalysis
+
+
+class System4Result(BaseModel):
+    scenario_id: Optional[str] = None
+    scenario_type: Optional[str] = None
+    target_table: str
+    primary_query: SqlQueryResult
+    diagnostic_queries: List[SqlDiagnostic] = Field(default_factory=list)
+    issue_findings: List[str] = Field(default_factory=list)
+    summary: str
+    explanation_points: List[str] = Field(default_factory=list)
+    affected_code_refs: List[EvidenceRef] = Field(default_factory=list)
+    warnings: List[str] = Field(default_factory=list)
+    confidence: float = 0.0
+
+
 class ServiceStep(BaseModel):
     name: str
     status: ServiceStatus
@@ -140,6 +175,7 @@ class ChatInvestigateResponse(BaseModel):
     system1: System1Result
     system2: Optional[ResolvedMetadata] = None
     system3: Optional[System3Result] = None
+    system4: Optional[System4Result] = None
     final_summary: str
     markdown_summary: str
     steps: List[ServiceStep] = Field(default_factory=list)

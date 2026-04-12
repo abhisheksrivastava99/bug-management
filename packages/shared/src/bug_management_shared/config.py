@@ -13,4 +13,5 @@ REPO_ROOT = get_repo_root()
 FIXTURES_ROOT = REPO_ROOT / "fixtures"
 EXCEL_ROOT = FIXTURES_ROOT / "excel"
 SCRIPTS_ROOT = FIXTURES_ROOT / "scripts"
-
+SQLITE_ROOT = FIXTURES_ROOT / "sqlite"
+CATALOG_ROOT = FIXTURES_ROOT / "catalog"

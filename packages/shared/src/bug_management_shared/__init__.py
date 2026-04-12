@@ -8,11 +8,15 @@ from .models import (
     ResolvedMetadata,
     ScriptAnalysis,
     ScriptAnalysisRequest,
+    SqlDiagnostic,
+    SqlQueryResult,
     ServiceStep,
     System1Request,
     System1Result,
     System2Request,
     System3Result,
+    System4Request,
+    System4Result,
 )
 from .fixture_catalog import build_scenario_catalog, get_all_scenarios
 
@@ -26,11 +30,15 @@ __all__ = [
     "ResolvedMetadata",
     "ScriptAnalysis",
     "ScriptAnalysisRequest",
+    "SqlDiagnostic",
+    "SqlQueryResult",
     "ServiceStep",
     "System1Request",
     "System1Result",
     "System2Request",
     "System3Result",
+    "System4Request",
+    "System4Result",
     "build_scenario_catalog",
     "get_all_scenarios",
 ]

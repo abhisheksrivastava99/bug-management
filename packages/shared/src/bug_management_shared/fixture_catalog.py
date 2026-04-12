@@ -305,6 +305,109 @@ def _curated_scenarios() -> List[Dict]:
                 id_column="BalanceIdentifier",
             ),
         ),
+        _scenario(
+            scenario_id="ops_tdupshipment_duplicate_rows",
+            golden=False,
+            scenario_type="duplicate_data",
+            division="OPS",
+            table_name="TDUPSHIPMENT",
+            source_tables=["src_dup_shipment_base", "src_dup_shipment_status"],
+            owner_users=["ops_owner", "data_support_ops"],
+            support_team="data_team_ops",
+            business_description="Duplicate shipment status records caused by duplicate enrichment rows.",
+            criticality="medium",
+            issue_title="OPS_TDUPSHIPMENT_Column ShipmentStatus duplicated in current target table",
+            focus_columns=["ShipmentStatus"],
+            root_cause_family="join_null_spike",
+            decision="investigate_join_logic",
+            expected_keywords=["ShipmentStatus", "duplicate", "ShipmentStatusSourceCode"],
+            mapping_rows=[
+                _mapping("tdupshipment_old", "tdupshipment_new", "shipment_id", "ShipmentIdentifier"),
+                _mapping("tdupshipment_old", "tdupshipment_new", "shipment_status", "ShipmentStatus"),
+            ],
+            old_script=_old_alias_script(
+                ["src_dup_shipment_base", "src_dup_shipment_status"],
+                join_key="shipment_id",
+                id_column="shipment_id",
+                focus_column="shipment_status",
+                companion_column=None,
+            ),
+            new_script=_new_duplicate_join_script(
+                ["src_dup_shipment_base", "src_dup_shipment_status"],
+                join_key="ShipmentIdentifier",
+                id_column="ShipmentIdentifier",
+                focus_column="ShipmentStatusSourceCode",
+                output_column="ShipmentStatus",
+            ),
+        ),
+        _scenario(
+            scenario_id="tty_teventlog_invalid_date_format",
+            golden=False,
+            scenario_type="invalid_type_format",
+            division="TTY",
+            table_name="TEVENTLOG",
+            source_tables=["src_eventlog_base", "src_eventlog_audit"],
+            owner_users=["tty_owner", "data_support_tty"],
+            support_team="data_team_tty",
+            business_description="Event log timestamps loaded without validating source date strings.",
+            criticality="medium",
+            issue_title="TTY_TEVENTLOG_Column EventOccurredTs contains string date values",
+            focus_columns=["EventOccurredTs"],
+            root_cause_family="source_column_disappearance",
+            decision="upstream_source_check_required",
+            expected_keywords=["EventOccurredTs", "RawEventOccurredTs", "cast"],
+            mapping_rows=[
+                _mapping("teventlog_old", "teventlog_new", "event_id", "EventIdentifier"),
+                _mapping("teventlog_old", "teventlog_new", "occurred_ts", "EventOccurredTs"),
+            ],
+            old_script=_old_source_script(
+                ["src_eventlog_base", "src_eventlog_audit"],
+                join_key="event_id",
+                id_column="event_id",
+                focus_column="occurred_ts",
+            ),
+            new_script=_new_passthrough_alias_script(
+                ["src_eventlog_base", "src_eventlog_audit"],
+                join_key="EventIdentifier",
+                id_column="EventIdentifier",
+                source_column="RawEventOccurredTs",
+                output_column="EventOccurredTs",
+            ),
+        ),
+        _scenario(
+            scenario_id="fin_torderlink_join_filter_miss",
+            golden=False,
+            scenario_type="join_filter_miss",
+            division="FIN",
+            table_name="TORDERLINK",
+            source_tables=["src_orderlink_base", "src_orderlink_status"],
+            owner_users=["fin_owner", "data_support_fin"],
+            support_team="data_team_fin",
+            business_description="Order link settlement status depends on join eligibility and active filtering.",
+            criticality="high",
+            issue_title="FIN_TORDERLINK_Column SettlementStatusCode missing after join filter",
+            focus_columns=["SettlementStatusCode"],
+            root_cause_family="filter_row_loss",
+            decision="investigate_filter_logic",
+            expected_keywords=["SettlementStatusCode", "EligibilityFlag", "filter"],
+            mapping_rows=[
+                _mapping("torderlink_old", "torderlink_new", "order_id", "OrderIdentifier"),
+                _mapping("torderlink_old", "torderlink_new", "market_code", "RegionalMarketCode"),
+                _mapping("torderlink_old", "torderlink_new", "settlement_flag", "SettlementStatusCode"),
+            ],
+            old_script=_old_join_script(
+                ["src_orderlink_base", "src_orderlink_status"],
+                join_key="order_id",
+                focus_column="settlement_flag",
+            ),
+            new_script=_new_join_filter_script(
+                ["src_orderlink_base", "src_orderlink_status"],
+                join_keys=["OrderIdentifier", "RegionalMarketCode"],
+                focus_column="SettlementStatusCode",
+                filter_column="EligibilityFlag",
+                filter_value="Y",
+            ),
+        ),
     ]
 
 
@@ -474,7 +577,7 @@ def _scenario(
     old_script: str,
     new_script: str,
 ) -> Dict:
-    return {
+    scenario = {
         "id": scenario_id,
         "golden": golden,
         "scenario_type": scenario_type,
@@ -496,6 +599,8 @@ def _scenario(
         "old_script": old_script,
         "new_script": new_script,
     }
+    scenario["sql_fixture"] = _build_sql_fixture(scenario)
+    return scenario
 
 
 def _mapping(old_table: str, new_table: str, old_col: str, new_col: str) -> Dict:
@@ -528,6 +633,552 @@ def _data_type_for(column_name: str) -> str:
     if any(marker in normalized for marker in numeric_markers):
         return "decimal"
     return "string"
+
+
+def _build_sql_fixture(scenario: Dict) -> Dict:
+    builders = {
+        "missing_final_select": _sql_fixture_missing_final_select,
+        "alias_mismatch": _sql_fixture_alias_mismatch,
+        "renamed_derivation": _sql_fixture_renamed_derivation,
+        "join_null_spike": _sql_fixture_join_null_spike,
+        "filter_row_loss": _sql_fixture_filter_row_loss,
+        "source_column_disappearance": _sql_fixture_source_column_disappearance,
+        "insufficient_evidence": _sql_fixture_insufficient_evidence,
+        "duplicate_data": _sql_fixture_duplicate_data,
+        "invalid_type_format": _sql_fixture_invalid_type_format,
+        "join_filter_miss": _sql_fixture_join_filter_miss,
+    }
+    builder = builders.get(scenario["scenario_type"], _sql_fixture_insufficient_evidence)
+    return builder(scenario)
+
+
+def _sql_fixture_missing_final_select(scenario: Dict) -> Dict:
+    id_column = _id_column(scenario)
+    focus_column = _focus_column(scenario)
+    display_column = _display_column(scenario)
+    aux_column = _aux_column(scenario, exclude={focus_column})
+    issue_id = _scenario_record_id(scenario, 1)
+    backup_id = _scenario_record_id(scenario, 2)
+    return {
+        "issue_key_column": id_column,
+        "issue_key_values": [issue_id],
+        "target_table_schema": _schema_entries(scenario, [id_column, display_column, aux_column]),
+        "target_rows": [
+            {
+                id_column: issue_id,
+                display_column: _display_value(scenario, 1),
+                aux_column: "loader_a",
+            },
+            {
+                id_column: backup_id,
+                display_column: _display_value(scenario, 2),
+                aux_column: "loader_b",
+            },
+        ],
+        "support_tables": [
+            {
+                "name": scenario["source_tables"][0],
+                "schema": _schema_entries(scenario, [id_column, display_column]),
+                "rows": [
+                    {id_column: issue_id, display_column: _display_value(scenario, 1)},
+                    {id_column: backup_id, display_column: _display_value(scenario, 2)},
+                ],
+            },
+            {
+                "name": scenario["source_tables"][1],
+                "schema": _schema_entries(scenario, [id_column, focus_column, aux_column]),
+                "rows": [
+                    {id_column: issue_id, focus_column: _timestamp_value(1), aux_column: "loader_a"},
+                    {id_column: backup_id, focus_column: _timestamp_value(2), aux_column: "loader_b"},
+                ],
+            },
+        ],
+        "primary_query_template": f'SELECT * FROM "{scenario["new_target_table_name"]}" WHERE "{id_column}" IN (:issue_keys) ORDER BY "{id_column}"',
+        "expected_findings": [
+            f'Current target table {scenario["new_target_table_name"]} does not contain {focus_column}.',
+            f'Support table {scenario["source_tables"][1]} still carries {focus_column} for the issue keys.',
+        ],
+        "diagnostic_hints": {
+            "focus_column": focus_column,
+            "support_lookup_table": scenario["source_tables"][1],
+            "support_focus_column": focus_column,
+        },
+    }
+
+
+def _sql_fixture_alias_mismatch(scenario: Dict) -> Dict:
+    id_column = _id_column(scenario)
+    focus_column = _focus_column(scenario)
+    display_column = _display_column(scenario)
+    wrong_column = _wrong_output_column(scenario, fallback_suffix="Label")
+    issue_id = _scenario_record_id(scenario, 1)
+    backup_id = _scenario_record_id(scenario, 2)
+    target_columns = [id_column]
+    if display_column and display_column != focus_column:
+        target_columns.append(display_column)
+    target_columns.append(wrong_column)
+    return {
+        "issue_key_column": id_column,
+        "issue_key_values": [issue_id],
+        "target_table_schema": _schema_entries(scenario, target_columns),
+        "target_rows": [
+            {id_column: issue_id, display_column: _display_value(scenario, 1), wrong_column: "ACTIVE"},
+            {id_column: backup_id, display_column: _display_value(scenario, 2), wrong_column: "PENDING"},
+        ],
+        "support_tables": [
+            {
+                "name": scenario["source_tables"][0],
+                "schema": _schema_entries(scenario, [id_column, display_column]),
+                "rows": [
+                    {id_column: issue_id, display_column: _display_value(scenario, 1)},
+                    {id_column: backup_id, display_column: _display_value(scenario, 2)},
+                ],
+            },
+            {
+                "name": scenario["source_tables"][1],
+                "schema": _schema_entries(scenario, [id_column, wrong_column]),
+                "rows": [
+                    {id_column: issue_id, wrong_column: "ACTIVE"},
+                    {id_column: backup_id, wrong_column: "PENDING"},
+                ],
+            },
+        ],
+        "primary_query_template": f'SELECT * FROM "{scenario["new_target_table_name"]}" WHERE "{id_column}" IN (:issue_keys) ORDER BY "{id_column}"',
+        "expected_findings": [
+            f'Current target table exposes {wrong_column} instead of the mapped column {focus_column}.',
+        ],
+        "diagnostic_hints": {
+            "focus_column": focus_column,
+            "wrong_output_column": wrong_column,
+        },
+    }
+
+
+def _sql_fixture_renamed_derivation(scenario: Dict) -> Dict:
+    id_column = _id_column(scenario)
+    focus_column = _focus_column(scenario)
+    amount_column = _display_column(scenario)
+    if amount_column == "BusinessLabel":
+        amount_column = "NetAmountValue"
+    wrong_column = _wrong_output_column(scenario, fallback_suffix="Value")
+    issue_id = _scenario_record_id(scenario, 1)
+    backup_id = _scenario_record_id(scenario, 2)
+    return {
+        "issue_key_column": id_column,
+        "issue_key_values": [issue_id],
+        "target_table_schema": _schema_entries(scenario, [id_column, amount_column, wrong_column]),
+        "target_rows": [
+            {id_column: issue_id, amount_column: 120.5, wrong_column: 18.07},
+            {id_column: backup_id, amount_column: 85.0, wrong_column: 12.75},
+        ],
+        "support_tables": [
+            {
+                "name": scenario["source_tables"][0],
+                "schema": _schema_entries(scenario, [id_column, amount_column]),
+                "rows": [
+                    {id_column: issue_id, amount_column: 120.5},
+                    {id_column: backup_id, amount_column: 85.0},
+                ],
+            },
+            {
+                "name": scenario["source_tables"][1],
+                "schema": _schema_entries(scenario, [id_column, "AppliedRate"]),
+                "rows": [
+                    {id_column: issue_id, "AppliedRate": 0.15},
+                    {id_column: backup_id, "AppliedRate": 0.15},
+                ],
+            },
+        ],
+        "primary_query_template": f'SELECT * FROM "{scenario["new_target_table_name"]}" WHERE "{id_column}" IN (:issue_keys) ORDER BY "{id_column}"',
+        "expected_findings": [
+            f'Current target table stores the derived value in {wrong_column} instead of {focus_column}.',
+        ],
+        "diagnostic_hints": {
+            "focus_column": focus_column,
+            "wrong_output_column": wrong_column,
+        },
+    }
+
+
+def _sql_fixture_join_null_spike(scenario: Dict) -> Dict:
+    id_column = _id_column(scenario)
+    join_column = _display_column(scenario)
+    focus_column = _focus_column(scenario)
+    issue_id = _scenario_record_id(scenario, 1)
+    healthy_id = _scenario_record_id(scenario, 2)
+    return {
+        "issue_key_column": id_column,
+        "issue_key_values": [issue_id],
+        "target_table_schema": _schema_entries(scenario, [id_column, join_column, focus_column]),
+        "target_rows": [
+            {id_column: issue_id, join_column: "APAC", focus_column: None},
+            {id_column: healthy_id, join_column: "EMEA", focus_column: "SETTLED"},
+        ],
+        "support_tables": [
+            {
+                "name": scenario["source_tables"][0],
+                "schema": _schema_entries(scenario, [id_column, join_column]),
+                "rows": [
+                    {id_column: issue_id, join_column: "APAC"},
+                    {id_column: healthy_id, join_column: "EMEA"},
+                ],
+            },
+            {
+                "name": scenario["source_tables"][1],
+                "schema": _schema_entries(scenario, [id_column, join_column, focus_column]),
+                "rows": [
+                    {id_column: issue_id, join_column: "NA", focus_column: "SETTLED"},
+                    {id_column: healthy_id, join_column: "EMEA", focus_column: "SETTLED"},
+                ],
+            },
+        ],
+        "primary_query_template": f'SELECT * FROM "{scenario["new_target_table_name"]}" WHERE "{id_column}" IN (:issue_keys) ORDER BY "{id_column}"',
+        "expected_findings": [
+            f'{focus_column} is null in the current target table for the issue keys.',
+            f'Support rows exist but the join dimensions for {join_column} do not align.',
+        ],
+        "diagnostic_hints": {
+            "focus_column": focus_column,
+            "join_columns": [id_column, join_column],
+            "support_lookup_table": scenario["source_tables"][1],
+            "support_focus_column": focus_column,
+        },
+    }
+
+
+def _sql_fixture_filter_row_loss(scenario: Dict) -> Dict:
+    id_column = _id_column(scenario)
+    focus_column = _focus_column(scenario)
+    issue_id = _scenario_record_id(scenario, 1)
+    healthy_id = _scenario_record_id(scenario, 2)
+    join_column = "WarehouseIdentifier"
+    return {
+        "issue_key_column": id_column,
+        "issue_key_values": [issue_id],
+        "target_table_schema": _schema_entries(scenario, [id_column, focus_column]),
+        "target_rows": [
+            {id_column: healthy_id, focus_column: "ACTIVE"},
+        ],
+        "support_tables": [
+            {
+                "name": scenario["source_tables"][0],
+                "schema": _schema_entries(scenario, [id_column, join_column]),
+                "rows": [
+                    {id_column: issue_id, join_column: "WH-001"},
+                    {id_column: healthy_id, join_column: "WH-002"},
+                ],
+            },
+            {
+                "name": scenario["source_tables"][1],
+                "schema": _schema_entries(scenario, [join_column, focus_column]),
+                "rows": [
+                    {join_column: "WH-001", focus_column: "INACTIVE"},
+                    {join_column: "WH-002", focus_column: "ACTIVE"},
+                ],
+            },
+        ],
+        "primary_query_template": f'SELECT * FROM "{scenario["new_target_table_name"]}" WHERE "{id_column}" IN (:issue_keys) ORDER BY "{id_column}"',
+        "expected_findings": [
+            f'No current target-table rows were produced for the issue key because the joined status did not meet the ACTIVE filter.',
+        ],
+        "diagnostic_hints": {
+            "focus_column": focus_column,
+            "filter_column": focus_column,
+            "filter_value": "ACTIVE",
+            "join_base_table": scenario["source_tables"][0],
+            "support_lookup_table": scenario["source_tables"][1],
+            "support_join_column": join_column,
+        },
+    }
+
+
+def _sql_fixture_source_column_disappearance(scenario: Dict) -> Dict:
+    id_column = _id_column(scenario)
+    focus_column = _focus_column(scenario)
+    issue_id = _scenario_record_id(scenario, 1)
+    return {
+        "issue_key_column": id_column,
+        "issue_key_values": [issue_id],
+        "target_table_schema": _schema_entries(scenario, [id_column]),
+        "target_rows": [
+            {id_column: issue_id},
+            {id_column: _scenario_record_id(scenario, 2)},
+        ],
+        "support_tables": [
+            {
+                "name": scenario["source_tables"][0],
+                "schema": _schema_entries(scenario, [id_column]),
+                "rows": [
+                    {id_column: issue_id},
+                    {id_column: _scenario_record_id(scenario, 2)},
+                ],
+            },
+            {
+                "name": scenario["source_tables"][1],
+                "schema": _schema_entries(scenario, [id_column, focus_column]),
+                "rows": [
+                    {id_column: issue_id, focus_column: _timestamp_value(3)},
+                    {id_column: _scenario_record_id(scenario, 2), focus_column: _timestamp_value(4)},
+                ],
+            },
+        ],
+        "primary_query_template": f'SELECT * FROM "{scenario["new_target_table_name"]}" WHERE "{id_column}" IN (:issue_keys) ORDER BY "{id_column}"',
+        "expected_findings": [
+            f'Current target table carries the identifier but not the mapped output column {focus_column}.',
+        ],
+        "diagnostic_hints": {
+            "focus_column": focus_column,
+            "support_lookup_table": scenario["source_tables"][1],
+            "support_focus_column": focus_column,
+        },
+    }
+
+
+def _sql_fixture_insufficient_evidence(scenario: Dict) -> Dict:
+    id_column = _id_column(scenario)
+    focus_column = _focus_column(scenario)
+    issue_id = _scenario_record_id(scenario, 1)
+    return {
+        "issue_key_column": id_column,
+        "issue_key_values": [issue_id],
+        "target_table_schema": _schema_entries(scenario, [id_column, focus_column]),
+        "target_rows": [
+            {id_column: issue_id, focus_column: 0.71},
+            {id_column: _scenario_record_id(scenario, 2), focus_column: 0.68},
+        ],
+        "support_tables": [
+            {
+                "name": scenario["source_tables"][0],
+                "schema": _schema_entries(scenario, [id_column, focus_column]),
+                "rows": [
+                    {id_column: issue_id, focus_column: 0.71},
+                    {id_column: _scenario_record_id(scenario, 2), focus_column: 0.68},
+                ],
+            },
+            {
+                "name": scenario["source_tables"][1],
+                "schema": _schema_entries(scenario, [id_column, "balance_amount_snapshot"]),
+                "rows": [
+                    {id_column: issue_id, "balance_amount_snapshot": 125.5},
+                    {id_column: _scenario_record_id(scenario, 2), "balance_amount_snapshot": 126.0},
+                ],
+            },
+        ],
+        "primary_query_template": f'SELECT * FROM "{scenario["new_target_table_name"]}" WHERE "{id_column}" IN (:issue_keys) ORDER BY "{id_column}"',
+        "expected_findings": [
+            "Current target-table values are present, but the SQL evidence alone does not isolate the regression.",
+        ],
+        "diagnostic_hints": {
+            "focus_column": focus_column,
+        },
+    }
+
+
+def _sql_fixture_duplicate_data(scenario: Dict) -> Dict:
+    id_column = _id_column(scenario)
+    focus_column = _focus_column(scenario)
+    issue_id = _scenario_record_id(scenario, 1)
+    return {
+        "issue_key_column": id_column,
+        "issue_key_values": [issue_id],
+        "target_table_schema": _schema_entries(scenario, [id_column, focus_column]),
+        "target_rows": [
+            {id_column: issue_id, focus_column: "READY"},
+            {id_column: issue_id, focus_column: "READY"},
+            {id_column: _scenario_record_id(scenario, 2), focus_column: "IN_TRANSIT"},
+        ],
+        "support_tables": [
+            {
+                "name": scenario["source_tables"][0],
+                "schema": _schema_entries(scenario, [id_column]),
+                "rows": [
+                    {id_column: issue_id},
+                    {id_column: _scenario_record_id(scenario, 2)},
+                ],
+            },
+            {
+                "name": scenario["source_tables"][1],
+                "schema": _schema_entries(scenario, [id_column, "ShipmentStatusSourceCode"]),
+                "rows": [
+                    {id_column: issue_id, "ShipmentStatusSourceCode": "READY"},
+                    {id_column: issue_id, "ShipmentStatusSourceCode": "READY"},
+                    {id_column: _scenario_record_id(scenario, 2), "ShipmentStatusSourceCode": "IN_TRANSIT"},
+                ],
+            },
+        ],
+        "primary_query_template": f'SELECT * FROM "{scenario["new_target_table_name"]}" WHERE "{id_column}" IN (:issue_keys) ORDER BY "{id_column}"',
+        "expected_findings": [
+            f'Duplicate current target-table rows exist for the issue key on {id_column}.',
+        ],
+        "diagnostic_hints": {
+            "focus_column": focus_column,
+            "duplicate_key_column": id_column,
+        },
+    }
+
+
+def _sql_fixture_invalid_type_format(scenario: Dict) -> Dict:
+    id_column = _id_column(scenario)
+    focus_column = _focus_column(scenario)
+    issue_id = _scenario_record_id(scenario, 1)
+    return {
+        "issue_key_column": id_column,
+        "issue_key_values": [issue_id],
+        "target_table_schema": _schema_entries(scenario, [id_column, focus_column]),
+        "target_rows": [
+            {id_column: issue_id, focus_column: "31-APR-2026"},
+            {id_column: _scenario_record_id(scenario, 2), focus_column: _timestamp_value(2)},
+        ],
+        "support_tables": [
+            {
+                "name": scenario["source_tables"][0],
+                "schema": _schema_entries(scenario, [id_column]),
+                "rows": [
+                    {id_column: issue_id},
+                    {id_column: _scenario_record_id(scenario, 2)},
+                ],
+            },
+            {
+                "name": scenario["source_tables"][1],
+                "schema": _schema_entries(scenario, [id_column, "RawEventOccurredTs"]),
+                "rows": [
+                    {id_column: issue_id, "RawEventOccurredTs": "31-APR-2026"},
+                    {id_column: _scenario_record_id(scenario, 2), "RawEventOccurredTs": _timestamp_value(2)},
+                ],
+            },
+        ],
+        "primary_query_template": f'SELECT * FROM "{scenario["new_target_table_name"]}" WHERE "{id_column}" IN (:issue_keys) ORDER BY "{id_column}"',
+        "expected_findings": [
+            f'Current target-table values for {focus_column} contain invalid timestamp-like strings.',
+        ],
+        "diagnostic_hints": {
+            "focus_column": focus_column,
+            "format_pattern": "timestamp",
+            "support_lookup_table": scenario["source_tables"][1],
+        },
+    }
+
+
+def _sql_fixture_join_filter_miss(scenario: Dict) -> Dict:
+    id_column = _id_column(scenario)
+    join_column = _display_column(scenario)
+    focus_column = _focus_column(scenario)
+    filter_column = "EligibilityFlag"
+    issue_id = _scenario_record_id(scenario, 1)
+    healthy_id = _scenario_record_id(scenario, 2)
+    return {
+        "issue_key_column": id_column,
+        "issue_key_values": [issue_id],
+        "target_table_schema": _schema_entries(scenario, [id_column, join_column, focus_column]),
+        "target_rows": [
+            {id_column: healthy_id, join_column: "EMEA", focus_column: "SETTLED"},
+        ],
+        "support_tables": [
+            {
+                "name": scenario["source_tables"][0],
+                "schema": _schema_entries(scenario, [id_column, join_column]),
+                "rows": [
+                    {id_column: issue_id, join_column: "APAC"},
+                    {id_column: healthy_id, join_column: "EMEA"},
+                ],
+            },
+            {
+                "name": scenario["source_tables"][1],
+                "schema": _schema_entries(scenario, [id_column, join_column, focus_column, filter_column]),
+                "rows": [
+                    {id_column: issue_id, join_column: "APAC", focus_column: "SETTLED", filter_column: "N"},
+                    {id_column: healthy_id, join_column: "EMEA", focus_column: "SETTLED", filter_column: "Y"},
+                ],
+            },
+        ],
+        "primary_query_template": f'SELECT * FROM "{scenario["new_target_table_name"]}" WHERE "{id_column}" IN (:issue_keys) ORDER BY "{id_column}"',
+        "expected_findings": [
+            f'No current target-table rows were emitted for the issue key because the join-side row failed the {filter_column} filter.',
+        ],
+        "diagnostic_hints": {
+            "focus_column": focus_column,
+            "join_columns": [id_column, join_column],
+            "filter_column": filter_column,
+            "filter_value": "Y",
+            "join_base_table": scenario["source_tables"][0],
+            "support_lookup_table": scenario["source_tables"][1],
+        },
+    }
+
+
+def _schema_entries(scenario: Dict, column_names: List[str]) -> List[Dict]:
+    return [
+        {
+            "name": column_name,
+            "type": _sqlite_type_for(_logical_type_for(scenario, column_name)),
+        }
+        for column_name in column_names
+        if column_name
+    ]
+
+
+def _logical_type_for(scenario: Dict, column_name: str) -> str:
+    for row in scenario["mapping_rows"]:
+        if row["new_column_name"] == column_name:
+            return row["data_type_new"]
+        if row["old_column_name"] == column_name:
+            return row["data_type_old"]
+    return _data_type_for(column_name)
+
+
+def _sqlite_type_for(logical_type: str) -> str:
+    if logical_type == "decimal":
+        return "REAL"
+    return "TEXT"
+
+
+def _id_column(scenario: Dict) -> str:
+    return scenario["mapping_rows"][0]["new_column_name"] if scenario["mapping_rows"] else "RecordIdentifier"
+
+
+def _focus_column(scenario: Dict) -> str:
+    if scenario["focus_columns"]:
+        return scenario["focus_columns"][0]
+    return scenario["mapping_rows"][-1]["new_column_name"] if scenario["mapping_rows"] else "IssueField"
+
+
+def _display_column(scenario: Dict) -> str:
+    focus_column = _focus_column(scenario)
+    for row in scenario["mapping_rows"][1:]:
+        candidate = row["new_column_name"]
+        if candidate != focus_column:
+            return candidate
+    return "BusinessLabel"
+
+
+def _aux_column(scenario: Dict, exclude=None) -> str:
+    excluded = set(exclude or set())
+    excluded.add(_id_column(scenario))
+    for row in reversed(scenario["mapping_rows"]):
+        candidate = row["new_column_name"]
+        if candidate not in excluded:
+            return candidate
+    return "AuditUser"
+
+
+def _wrong_output_column(scenario: Dict, fallback_suffix: str) -> str:
+    focus = _focus_column(scenario)
+    for keyword in reversed(scenario.get("expected_keywords", [])):
+        if keyword != focus and keyword and keyword[:1].isalpha() and any(char.isupper() for char in keyword[1:]):
+            return keyword
+    return f"{focus}{fallback_suffix}"
+
+
+def _scenario_record_id(scenario: Dict, index: int) -> str:
+    return f'{scenario["table_name"]}_{index:03d}'
+
+
+def _display_value(scenario: Dict, index: int) -> str:
+    return f'{scenario["table_name"]} row {index}'
+
+
+def _timestamp_value(index: int) -> str:
+    return f"2026-04-{index:02d}T09:15:00"
 
 
 def _old_projection_script(source_tables: List[str], join_key: str, id_column: str, name_column: str, focus_column: str, aux_column: str) -> str:
@@ -740,4 +1391,56 @@ def _new_insufficient_script(source_tables: List[str], id_column: str) -> str:
 
 def transform({source_tables[0]}, {source_tables[1]}):
     return {source_tables[1]}.select("{id_column}", "balance_amount_snapshot")
+"""
+
+
+def _new_duplicate_join_script(source_tables: List[str], join_key: str, id_column: str, focus_column: str, output_column: str) -> str:
+    return f"""from pyspark.sql import functions as F
+
+
+def transform({source_tables[0]}, {source_tables[1]}):
+    return (
+        {source_tables[0]}.alias("base")
+        .join({source_tables[1]}.alias("status"), on="{join_key}", how="left")
+        .select(
+            F.col("base.{id_column}").alias("{id_column}"),
+            F.col("status.{focus_column}").alias("{output_column}"),
+        )
+    )
+"""
+
+
+def _new_passthrough_alias_script(source_tables: List[str], join_key: str, id_column: str, source_column: str, output_column: str) -> str:
+    return f"""from pyspark.sql import functions as F
+
+
+def transform({source_tables[0]}, {source_tables[1]}):
+    audit_cols = {source_tables[1]}.select("{join_key}", "{source_column}")
+    return (
+        {source_tables[0]}.alias("base")
+        .join(audit_cols.alias("audit"), on="{join_key}", how="left")
+        .select(
+            F.col("base.{id_column}").alias("{id_column}"),
+            F.col("audit.{source_column}").alias("{output_column}"),
+        )
+    )
+"""
+
+
+def _new_join_filter_script(source_tables: List[str], join_keys: List[str], focus_column: str, filter_column: str, filter_value: str) -> str:
+    join_literal = "[" + ", ".join(f'"{key}"' for key in join_keys) + "]"
+    return f"""from pyspark.sql import functions as F
+
+
+def transform({source_tables[0]}, {source_tables[1]}):
+    status_filtered = {source_tables[1]}.filter(F.col("{filter_column}") == "{filter_value}")
+    return (
+        {source_tables[0]}.alias("base")
+        .join(status_filtered.alias("status"), on={join_literal}, how="left")
+        .select(
+            F.col("base.{join_keys[0]}").alias("{join_keys[0]}"),
+            F.col("base.{join_keys[1]}").alias("{join_keys[1]}"),
+            F.col("status.{focus_column}").alias("{focus_column}"),
+        )
+    )
 """

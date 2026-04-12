@@ -15,6 +15,9 @@ const sampleGroups = [
             "FIN_TLEDGER_Column LedgerBalanceAmount missing",
             "OPS_TINVENTORY_Column WarehouseOperatingState missing",
             "TTY_TPROFILEAUDIT_Column GovernanceReviewIndex missing",
+            "OPS_TDUPSHIPMENT_Column ShipmentStatus duplicated in current target table",
+            "TTY_TEVENTLOG_Column EventOccurredTs contains string date values",
+            "FIN_TORDERLINK_Column SettlementStatusCode missing after join filter",
         ],
     },
     {
@@ -42,6 +45,10 @@ const architectureHighlights = [
         description: "Analyzes the old and new scripts separately, compares the behaviors, and produces a focused human-readable investigation summary.",
     },
     {
+        title: "System 4",
+        description: "Queries the SQLite target-table fixtures, runs deterministic diagnostics, and compares those findings with the new-script analysis.",
+    },
+    {
         title: "Orchestrator",
         description: "Runs the end-to-end flow for the UI and returns the structured result that powers the dashboard.",
     },
@@ -61,6 +68,10 @@ const dataSources = [
         details: "Repo-local script fixtures used to compare the legacy logic against the new Gavin3 transformation logic.",
     },
     {
+        title: "SQLite Target Table Fixtures",
+        details: "Seeded current-target-table and support-table rows used by System 4 for issue-focused SQL diagnostics.",
+    },
+    {
         title: "Scenario Catalog",
         details: "Curated bug scenarios used to make the mock data realistic and aligned to migration regressions.",
     },
@@ -71,6 +82,8 @@ const analystOutputs = [
     "Old target table and new target table",
     "Issue-focused column mapping plus full target-table mapping",
     "Old script analysis and new script analysis",
+    "Current target-table SQL query results and diagnostic SQL checks",
+    "SQL-versus-new-script explanation with affected code references",
     "Likely root cause, possible resolutions, and recommended next step",
     "Evidence snippets and script references when expanded",
 ];
@@ -165,7 +178,7 @@ const aiUsageCards = [
     },
     {
         title: "How AI Is Used",
-        details: "For a data issue, the POC can use AI once in System 1 when the title is ambiguous, then System 3 runs old-script analysis, new-script analysis, and final synthesis into a human-readable investigation summary.",
+        details: "For a data issue, the POC can use AI once in System 1 when the title is ambiguous, then System 3 runs old-script analysis, new-script analysis, and synthesis, and System 4 can use one additional grounded comparison call to explain SQL symptoms against the new script.",
     },
     {
         title: "Current Model",
@@ -180,8 +193,9 @@ const aiUsageCards = [
 const aiCostNotes = [
     "System 1 normally stays rule-based, but a low-confidence title can trigger one extra fallback LLM call for parsing and classification.",
     "A typical data investigation triggers three LLM calls in System 3: old-script analysis, new-script analysis, and synthesis.",
+    "System 4 can add one more grounded LLM call after deterministic SQL diagnostics to explain how current target-table data lines up with the new script.",
     "Using the current default model gpt-4o-mini, a small POC investigation usually lands in the low-thousand-token range and is typically a fraction of a cent to a few tenths of a cent per issue.",
-    "A reasonable working estimate for this POC is about $0.002 to $0.005 per normal data issue, with slightly higher cost when System 1 also needs the AI fallback.",
+    "A reasonable working estimate for this POC is about $0.003 to $0.007 per normal data issue, with slightly higher cost when System 1 also needs the AI fallback.",
     "Infra issues short-circuit after System 1, so they do not need the LLM path in System 3.",
     "Costs can increase if we send larger script excerpts, longer evidence blocks, or switch to a more capable model.",
 ];
@@ -209,6 +223,7 @@ function buildViewModel(result) {
     const system1 = result.system1 || {};
     const system2 = result.system2 || {};
     const system3 = result.system3 || null;
+    const system4 = result.system4 || null;
     const isInfra = !system3;
     const fullMappingSource =
         system2.full_column_mapping ||
@@ -219,7 +234,7 @@ function buildViewModel(result) {
 
     return {
         isInfra,
-        issueSummary: system3?.final_summary || result.final_summary || system1.issue || "",
+        issueSummary: system4?.summary || system3?.final_summary || result.final_summary || system1.issue || "",
         overview: [
             { label: "Division", value: system1.division || "N/A" },
             { label: "Table", value: system1.table_name || "N/A" },
@@ -256,6 +271,19 @@ function buildViewModel(result) {
         evidenceGaps: system3?.evidence_gaps || [],
         unresolvedQuestions: system3?.unresolved_questions || [],
         analysisWarnings: system3?.analysis_warnings || [],
+        sqlAnalysis: system4
+            ? {
+                targetTable: system4.target_table,
+                scenarioType: formatLabel(system4.scenario_type),
+                confidence: formatConfidence(system4.confidence),
+                primaryQuery: system4.primary_query,
+                diagnostics: system4.diagnostic_queries || [],
+                issueFindings: system4.issue_findings || [],
+                explanationPoints: system4.explanation_points || [],
+                affectedCodeRefs: system4.affected_code_refs || [],
+                warnings: system4.warnings || [],
+            }
+            : null,
         markdownSummary: result.markdown_summary || "",
         raw: result,
     };
@@ -378,6 +406,145 @@ function SectionList({ title, items, emptyLabel, children }) {
     );
 }
 
+function renderCellValue(value) {
+    if (value === null || value === undefined || value === "") {
+        return "NULL";
+    }
+    if (typeof value === "object") {
+        return JSON.stringify(value);
+    }
+    return String(value);
+}
+
+function QueryResultPanel({ title, purpose, result, findings }) {
+    const rows = result?.rows || [];
+    const columns = result?.columns || [];
+
+    return (
+        <article className="query-card">
+            <div className="query-header">
+                <div>
+                    <p className="section-kicker">{title}</p>
+                    <h3>{result?.label || title}</h3>
+                </div>
+                <span className="metric-badge">Rows: {result?.row_count ?? 0}</span>
+            </div>
+            <p className="analysis-summary">{purpose}</p>
+            <pre className="code-block query-sql">{result?.sql || "No SQL query was executed."}</pre>
+            {rows.length && columns.length ? (
+                <div className="table-wrap">
+                    <table className="mapping-table">
+                        <thead>
+                            <tr>
+                                {columns.map((column) => (
+                                    <th key={`${title}-${column}`}>{column}</th>
+                                ))}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {rows.map((row, rowIndex) => (
+                                <tr key={`${title}-row-${rowIndex}`}>
+                                    {columns.map((column) => (
+                                        <td key={`${title}-${rowIndex}-${column}`}>{renderCellValue(row[column])}</td>
+                                    ))}
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+            ) : (
+                <p className="empty-text">This query did not return any rows.</p>
+            )}
+            {findings?.length ? <SectionList title="Query Findings" items={findings} emptyLabel="No query findings recorded." /> : null}
+        </article>
+    );
+}
+
+function SqlAnalysisPanel({ sqlAnalysis }) {
+    if (!sqlAnalysis) {
+        return null;
+    }
+
+    return (
+        <section className="sql-grid">
+            <div className="analysis-grid-header">
+                <div>
+                    <p className="section-kicker">System 4</p>
+                    <h2>SQL Data vs New Script Impact</h2>
+                </div>
+                <div className="metric-cluster">
+                    <span className="metric-badge">Scenario: {sqlAnalysis.scenarioType || "N/A"}</span>
+                    <span className="metric-badge">Confidence: {sqlAnalysis.confidence}</span>
+                </div>
+            </div>
+
+            <article className="panel sql-summary-panel">
+                <div className="stats-grid">
+                    <div className="stat-card">
+                        <span className="stat-label">Target Table</span>
+                        <strong className="stat-value">{sqlAnalysis.targetTable}</strong>
+                    </div>
+                    <div className="stat-card">
+                        <span className="stat-label">Primary Query Rows</span>
+                        <strong className="stat-value">{sqlAnalysis.primaryQuery?.row_count ?? 0}</strong>
+                    </div>
+                </div>
+                <div className="meta-grid">
+                    <SectionList title="SQL Findings" items={sqlAnalysis.issueFindings} emptyLabel="No SQL findings were produced." />
+                    <SectionList
+                        title="Comparison Summary"
+                        items={sqlAnalysis.explanationPoints}
+                        emptyLabel="No SQL comparison points were produced."
+                    />
+                </div>
+                <SectionList title="Warnings" items={sqlAnalysis.warnings} emptyLabel="No SQL warnings were produced." />
+            </article>
+
+            <QueryResultPanel
+                title="Primary SQL Query"
+                purpose="This query fetches the current target-table rows related to the issue keys."
+                result={sqlAnalysis.primaryQuery}
+                findings={[]}
+            />
+
+            <div className="sql-diagnostic-stack">
+                {sqlAnalysis.diagnostics.map((diagnostic) => (
+                    <QueryResultPanel
+                        key={`${diagnostic.name}-${diagnostic.query?.sql}`}
+                        title={diagnostic.name}
+                        purpose={diagnostic.purpose}
+                        result={diagnostic.query}
+                        findings={diagnostic.findings}
+                    />
+                ))}
+            </div>
+
+            <article className="panel">
+                <SectionList title="Affected New-Script Code References" items={null} emptyLabel="No new-script references were selected.">
+                    {sqlAnalysis.affectedCodeRefs?.length ? (
+                        <div className="evidence-stack">
+                            {sqlAnalysis.affectedCodeRefs.map((item, index) => (
+                                <article key={`${item.file_path}-${item.start_line}-${index}`} className="evidence-card">
+                                    <div className="evidence-meta">
+                                        <strong>{item.file_path?.split("/").pop() || "Script evidence"}</strong>
+                                        <span>
+                                            Lines {item.start_line}-{item.end_line}
+                                        </span>
+                                    </div>
+                                    <p className="evidence-reason">{item.reason}</p>
+                                    <pre className="code-block">{item.snippet}</pre>
+                                </article>
+                            ))}
+                        </div>
+                    ) : (
+                        <p className="empty-text">No new-script references were selected.</p>
+                    )}
+                </SectionList>
+            </article>
+        </section>
+    );
+}
+
 function InvestigationPage({
     title,
     setTitle,
@@ -399,7 +566,7 @@ function InvestigationPage({
                         <h1>Investigate Gavin2 to Gavin3 migration bugs from a Jira title</h1>
                         <p className="hero-copy">
                             Paste a structured Jira title to see the incident summary, target table metadata, column
-                            mapping, old and new script analysis, and recommended next steps in a structured dashboard.
+                            mapping, old and new script analysis, SQL diagnostics, and recommended next steps in a structured dashboard.
                         </p>
                     </div>
                     <div className="hero-side-actions">
@@ -619,6 +786,8 @@ function InvestigationPage({
                                 ))}
                             </section>
 
+                            <SqlAnalysisPanel sqlAnalysis={viewModel.sqlAnalysis} />
+
                             <article className="panel">
                                 <h2>Possible Resolutions</h2>
                                 <SectionList
@@ -671,8 +840,8 @@ function DocsPage() {
                         <p className="eyebrow">Project Docs</p>
                         <h1>Architecture and data flow for the Jira bug investigation POC</h1>
                         <p className="hero-copy">
-                            This page documents how the UI, orchestrator, and three backend systems collaborate to
-                            turn a Jira title into a grounded migration investigation summary.
+                            This page documents how the UI, orchestrator, and four investigation stages collaborate to
+                            turn a Jira title into a grounded migration investigation summary with target-table SQL diagnostics.
                         </p>
                     </div>
                     <Link to="/" className="ghost nav-button">
@@ -687,7 +856,7 @@ function DocsPage() {
                 <figure className="docs-figure">
                     <img src="/docs-images/architecture-diagram.png" alt="Architecture diagram for the bug investigation platform" />
                     <figcaption>
-                        High-level architecture showing the React UI, orchestrator, three backend systems, workbook inputs, script fixtures, and LLM analysis.
+                        High-level architecture showing the React UI, orchestrator, four investigation stages, workbook inputs, SQLite fixtures, script fixtures, and LLM analysis.
                     </figcaption>
                 </figure>
                 <div className="docs-card-grid">
@@ -706,7 +875,7 @@ function DocsPage() {
                 <figure className="docs-figure">
                     <img src="/docs-images/data-flow-diagram.png" alt="Data flow diagram for Jira title investigation" />
                     <figcaption>
-                        End-to-end flow from Jira title input through parsing, metadata resolution, old/new script analysis, and final structured output.
+                        End-to-end flow from Jira title input through parsing, metadata resolution, old/new script analysis, SQL diagnostics, and final structured output.
                     </figcaption>
                 </figure>
                 <ol className="docs-flow-list">
@@ -714,6 +883,7 @@ function DocsPage() {
                     <li>The orchestrator calls System 1 to parse the title and classify the incident.</li>
                     <li>If the issue is data-related, System 2 resolves table metadata and old-to-new column mappings.</li>
                     <li>System 3 analyzes the old script and new script independently using the resolved mapping context.</li>
+                    <li>System 4 queries SQLite target-table fixtures, runs deterministic diagnostics, and compares those findings with the new-script analysis.</li>
                     <li>The orchestrator returns a structured response that powers the investigation dashboard.</li>
                 </ol>
             </article>

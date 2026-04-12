@@ -1,5 +1,6 @@
 import json
 import os
+import sqlite3
 import subprocess
 import sys
 import unittest
@@ -22,9 +23,14 @@ class FixtureGeneratorTests(unittest.TestCase):
         second = json.loads(catalog_path.read_text(encoding="utf-8"))
         self.assertEqual(first, second)
         self.assertGreaterEqual(len(first["scenarios"]), 8)
+        scenario_types = {scenario["scenario_type"] for scenario in first["scenarios"]}
+        self.assertIn("duplicate_data", scenario_types)
+        self.assertIn("invalid_type_format", scenario_types)
+        self.assertIn("join_filter_miss", scenario_types)
         for scenario in first["scenarios"]:
             self.assertIn("root_cause_family", scenario)
             self.assertIn("mapping_rows", scenario)
+            self.assertIn("sql_fixture", scenario)
             self.assertGreaterEqual(len(scenario["mapping_rows"]), 1)
             for row in scenario["mapping_rows"]:
                 self.assertNotEqual(row["old_column_name"], row["new_column_name"])
@@ -46,6 +52,14 @@ class FixtureGeneratorTests(unittest.TestCase):
                 "data_type_new",
             ),
         )
+
+        sqlite_path = ROOT / "fixtures" / "sqlite" / "bug_management_demo.db"
+        self.assertTrue(sqlite_path.exists())
+        with sqlite3.connect(sqlite_path) as connection:
+            cursor = connection.execute('SELECT COUNT(*) FROM "tentity_new"')
+            self.assertGreater(cursor.fetchone()[0], 0)
+            cursor = connection.execute('SELECT COUNT(*) FROM "tdupshipment_new"')
+            self.assertGreater(cursor.fetchone()[0], 0)
 
 
 if __name__ == "__main__":

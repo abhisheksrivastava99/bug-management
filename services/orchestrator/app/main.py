@@ -22,7 +22,10 @@ from bug_management_shared.models import (
     System1Result,
     System2Request,
     System3Result,
+    System4Request,
+    System4Result,
 )
+from bug_management_shared.system4 import analyze_system4
 
 
 configure_logging("orchestrator")
@@ -87,6 +90,7 @@ async def investigate(
         ServiceStep(name="system1", status="running", detail="Parsing Jira title."),
         ServiceStep(name="system2", status="pending", detail="Waiting for metadata lookup."),
         ServiceStep(name="system3", status="pending", detail="Waiting for script analysis."),
+        ServiceStep(name="system4", status="pending", detail="Waiting for SQL diagnostics."),
     ]
 
     async with httpx.AsyncClient(timeout=30.0) as client:
@@ -102,6 +106,7 @@ async def investigate(
         if system1.issue_classification == "infra_issue":
             steps[1] = ServiceStep(name="system2", status="skipped", detail="Infra issues do not require metadata lookup.")
             steps[2] = ServiceStep(name="system3", status="skipped", detail="Infra issues do not require script analysis.")
+            steps[3] = ServiceStep(name="system4", status="skipped", detail="Infra issues do not require SQL diagnostics.")
             markdown = _format_infra_markdown(system1)
             return ChatInvestigateResponse(
                 request_id=request_id,
@@ -138,15 +143,26 @@ async def investigate(
         )
         _raise_for_status(system3_res, "system3")
         system3 = System3Result(**system3_res.json())
-        steps[2] = ServiceStep(name="system3", status="completed", detail="Investigation complete.")
-        markdown = _format_markdown(system3)
+        steps[2] = ServiceStep(name="system3", status="completed", detail="New script comparison complete.")
+
+        steps[3] = ServiceStep(name="system4", status="running", detail="Comparing SQLite data with the new script analysis.")
+        system4 = await analyze_system4(
+            System4Request(
+                system1=system1,
+                system2=system2_payload,
+                new_analysis=system3.new_analysis,
+            )
+        )
+        steps[3] = ServiceStep(name="system4", status="completed", detail="SQL comparison complete.")
+        markdown = _format_markdown(system3, system4)
         return ChatInvestigateResponse(
             request_id=request_id,
             routing_team=system1.routing_team,
             system1=system1,
             system2=system2_payload,
             system3=system3,
-            final_summary=system3.final_summary,
+            system4=system4,
+            final_summary=system4.summary or system3.final_summary,
             markdown_summary=markdown,
             steps=steps,
         )
@@ -180,8 +196,10 @@ def _format_infra_markdown(system1: System1Result) -> str:
     )
 
 
-def _format_markdown(system3: System3Result) -> str:
+def _format_markdown(system3: System3Result, system4: System4Result) -> str:
     resolutions = "\n".join(f"- {item}" for item in system3.possible_resolutions)
+    sql_findings = "\n".join(f"- {item}" for item in system4.issue_findings) or "- No SQL findings were returned."
+    sql_explanations = "\n".join(f"- {item}" for item in system4.explanation_points) or "- No SQL explanation points were returned."
     return (
         f"## Investigation Summary\n"
         f"- Routing Team: {system3.system1.routing_team}\n"
@@ -192,6 +210,11 @@ def _format_markdown(system3: System3Result) -> str:
         f"- Old Script: {system3.old_script_observation}\n"
         f"- New Script: {system3.new_script_observation}\n"
         f"- Likely Root Cause: {system3.likely_root_cause}\n\n"
+        f"## SQL vs New Script\n"
+        f"- Target Table: {system4.target_table}\n"
+        f"- SQL Summary: {system4.summary}\n"
+        f"- SQL Findings:\n{sql_findings}\n"
+        f"- Comparison Points:\n{sql_explanations}\n\n"
         f"## Possible Resolutions\n"
         f"{resolutions}\n\n"
         f"## Recommended Next Step\n"

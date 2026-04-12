@@ -59,14 +59,21 @@ def main() -> int:
 
         chat_data = client.post(f"{ORCHESTRATOR_URL}/chat/investigate", json={"raw_title": data_title})
         assert_status(chat_data, 200, "orchestrator data flow")
+        chat_payload = chat_data.json()
         if "recommended_next_step" not in chat_data.text:
             raise AssertionError("chat data response missing recommended_next_step")
+        if chat_payload.get("system4") is None:
+            raise AssertionError("chat data response missing system4 SQL analysis")
+        if not any(step["name"] == "system4" for step in chat_payload["steps"]):
+            raise AssertionError("chat data response missing system4 progress step")
 
         chat_infra = client.post(f"{ORCHESTRATOR_URL}/chat/investigate", json={"raw_title": infra_title})
         assert_status(chat_infra, 200, "orchestrator infra flow")
         infra_payload = chat_infra.json()
         if infra_payload["system3"] is not None:
             raise AssertionError("infra flow should short-circuit before system3")
+        if infra_payload["system4"] is not None:
+            raise AssertionError("infra flow should short-circuit before system4")
 
     print("Smoke tests passed.")
     return 0

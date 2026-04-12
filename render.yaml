@@ -3,7 +3,7 @@ services:
     name: bug-management-api
     runtime: python
     plan: free
-    buildCommand: pip install -r requirements.txt
+    buildCommand: pip install -r requirements.txt && python3 scripts/generate_excel_fixtures.py
     startCommand: python3 -m uvicorn services.render_backend.app.main:app --host 0.0.0.0 --port $PORT
     envVars:
       - key: PYTHON_VERSION

@@ -85,6 +85,102 @@
       ],
       "old_script": "from pyspark.sql import functions as F\n\n\ndef transform(src_tentity_base, src_tentity_audit):\n    audit_snapshot = src_tentity_audit.select(\n        \"entity_id\",\n        \"date_updated\",\n        \"updated_by\",\n    )\n\n    return (\n        src_tentity_base.alias(\"base\")\n        .join(audit_snapshot.alias(\"audit\"), on=\"entity_id\", how=\"left\")\n        .select(\n            F.col(\"base.entity_id\").alias(\"entity_id\"),\n            F.col(\"base.entity_name\").alias(\"entity_name\"),\n            F.col(\"audit.date_updated\").alias(\"date_updated\"),\n            F.col(\"audit.updated_by\").alias(\"updated_by\"),\n        )\n    )\n",
       "new_script": "from pyspark.sql import functions as F\n\n\ndef transform(src_tentity_base, src_tentity_audit):\n    audit_snapshot = src_tentity_audit.select(\n        \"EntityIdentifier\",\n        \"UpdatedByUser\",\n    )\n\n    return (\n        src_tentity_base.alias(\"base\")\n        .join(audit_snapshot.alias(\"audit\"), on=\"EntityIdentifier\", how=\"left\")\n        .select(\n            F.col(\"base.EntityIdentifier\").alias(\"EntityIdentifier\"),\n            F.col(\"base.EntityDisplayName\").alias(\"EntityDisplayName\"),\n            F.col(\"audit.UpdatedByUser\").alias(\"UpdatedByUser\"),\n        )\n    )\n",
+      "sql_fixture": {
+        "issue_key_column": "EntityIdentifier",
+        "issue_key_values": [
+          "TENTITY_001"
+        ],
+        "target_table_schema": [
+          {
+            "name": "EntityIdentifier",
+            "type": "TEXT"
+          },
+          {
+            "name": "EntityDisplayName",
+            "type": "TEXT"
+          },
+          {
+            "name": "UpdatedByUser",
+            "type": "TEXT"
+          }
+        ],
+        "target_rows": [
+          {
+            "EntityIdentifier": "TENTITY_001",
+            "EntityDisplayName": "TENTITY row 1",
+            "UpdatedByUser": "loader_a"
+          },
+          {
+            "EntityIdentifier": "TENTITY_002",
+            "EntityDisplayName": "TENTITY row 2",
+            "UpdatedByUser": "loader_b"
+          }
+        ],
+        "support_tables": [
+          {
+            "name": "src_tentity_base",
+            "schema": [
+              {
+                "name": "EntityIdentifier",
+                "type": "TEXT"
+              },
+              {
+                "name": "EntityDisplayName",
+                "type": "TEXT"
+              }
+            ],
+            "rows": [
+              {
+                "EntityIdentifier": "TENTITY_001",
+                "EntityDisplayName": "TENTITY row 1"
+              },
+              {
+                "EntityIdentifier": "TENTITY_002",
+                "EntityDisplayName": "TENTITY row 2"
+              }
+            ]
+          },
+          {
+            "name": "src_tentity_audit",
+            "schema": [
+              {
+                "name": "EntityIdentifier",
+                "type": "TEXT"
+              },
+              {
+                "name": "UPDATEDDATE",
+                "type": "TEXT"
+              },
+              {
+                "name": "UpdatedByUser",
+                "type": "TEXT"
+              }
+            ],
+            "rows": [
+              {
+                "EntityIdentifier": "TENTITY_001",
+                "UPDATEDDATE": "2026-04-01T09:15:00",
+                "UpdatedByUser": "loader_a"
+              },
+              {
+                "EntityIdentifier": "TENTITY_002",
+                "UPDATEDDATE": "2026-04-02T09:15:00",
+                "UpdatedByUser": "loader_b"
+              }
+            ]
+          }
+        ],
+        "primary_query_template": "SELECT * FROM \"tentity_new\" WHERE \"EntityIdentifier\" IN (:issue_keys) ORDER BY \"EntityIdentifier\"",
+        "expected_findings": [
+          "Current target table tentity_new does not contain UPDATEDDATE.",
+          "Support table src_tentity_audit still carries UPDATEDDATE for the issue keys."
+        ],
+        "diagnostic_hints": {
+          "focus_column": "UPDATEDDATE",
+          "support_lookup_table": "src_tentity_audit",
+          "support_focus_column": "UPDATEDDATE"
+        }
+      },
       "old_transformation_script_path": "fixtures/scripts/old/tty/tentity.py",
       "new_transformation_script_path": "fixtures/scripts/new/tty/tentity.py"
     },
@@ -152,6 +248,94 @@
       ],
       "old_script": "from pyspark.sql import functions as F\n\n\ndef transform(src_customer_master, src_customer_status):\n    return (\n        src_customer_master.alias(\"master\")\n        .join(src_customer_status.alias(\"status\"), on=\"customer_id\", how=\"left\")\n        .select(\n            F.col(\"master.customer_id\").alias(\"customer_id\"),\n            F.col(\"master.customer_name\").alias(\"customer_name\"),\n            F.col(\"status.status_cd\").alias(\"status_cd\"),\n        )\n    )\n",
       "new_script": "from pyspark.sql import functions as F\n\n\ndef transform(src_customer_master, src_customer_status):\n    return (\n        src_customer_master.alias(\"master\")\n        .join(src_customer_status.alias(\"status\"), on=\"CustomerIdentifier\", how=\"left\")\n        .select(\n            F.col(\"master.CustomerIdentifier\").alias(\"CustomerIdentifier\"),\n            F.col(\"master.CustomerDisplayName\").alias(\"CustomerDisplayName\"),\n            F.col(\"status.CustomerStatusSourceCode\").alias(\"customer_status_label\"),\n        )\n    )\n",
+      "sql_fixture": {
+        "issue_key_column": "CustomerIdentifier",
+        "issue_key_values": [
+          "TCUSTOMER_001"
+        ],
+        "target_table_schema": [
+          {
+            "name": "CustomerIdentifier",
+            "type": "TEXT"
+          },
+          {
+            "name": "CustomerDisplayName",
+            "type": "TEXT"
+          },
+          {
+            "name": "customer_status_codeLabel",
+            "type": "TEXT"
+          }
+        ],
+        "target_rows": [
+          {
+            "CustomerIdentifier": "TCUSTOMER_001",
+            "CustomerDisplayName": "TCUSTOMER row 1",
+            "customer_status_codeLabel": "ACTIVE"
+          },
+          {
+            "CustomerIdentifier": "TCUSTOMER_002",
+            "CustomerDisplayName": "TCUSTOMER row 2",
+            "customer_status_codeLabel": "PENDING"
+          }
+        ],
+        "support_tables": [
+          {
+            "name": "src_customer_master",
+            "schema": [
+              {
+                "name": "CustomerIdentifier",
+                "type": "TEXT"
+              },
+              {
+                "name": "CustomerDisplayName",
+                "type": "TEXT"
+              }
+            ],
+            "rows": [
+              {
+                "CustomerIdentifier": "TCUSTOMER_001",
+                "CustomerDisplayName": "TCUSTOMER row 1"
+              },
+              {
+                "CustomerIdentifier": "TCUSTOMER_002",
+                "CustomerDisplayName": "TCUSTOMER row 2"
+              }
+            ]
+          },
+          {
+            "name": "src_customer_status",
+            "schema": [
+              {
+                "name": "CustomerIdentifier",
+                "type": "TEXT"
+              },
+              {
+                "name": "customer_status_codeLabel",
+                "type": "TEXT"
+              }
+            ],
+            "rows": [
+              {
+                "CustomerIdentifier": "TCUSTOMER_001",
+                "customer_status_codeLabel": "ACTIVE"
+              },
+              {
+                "CustomerIdentifier": "TCUSTOMER_002",
+                "customer_status_codeLabel": "PENDING"
+              }
+            ]
+          }
+        ],
+        "primary_query_template": "SELECT * FROM \"tcustomer_new\" WHERE \"CustomerIdentifier\" IN (:issue_keys) ORDER BY \"CustomerIdentifier\"",
+        "expected_findings": [
+          "Current target table exposes customer_status_codeLabel instead of the mapped column customer_status_code."
+        ],
+        "diagnostic_hints": {
+          "focus_column": "customer_status_code",
+          "wrong_output_column": "customer_status_codeLabel"
+        }
+      },
       "old_transformation_script_path": "fixtures/scripts/old/tty/tcustomer.py",
       "new_transformation_script_path": "fixtures/scripts/new/tty/tcustomer.py"
     },
@@ -219,6 +403,94 @@
       ],
       "old_script": "from pyspark.sql import functions as F\n\n\ndef transform(src_invoice_header, src_invoice_tax):\n    return (\n        src_invoice_header.alias(\"header\")\n        .join(src_invoice_tax.alias(\"tax\"), on=\"invoice_id\", how=\"left\")\n        .withColumn(\"tax_ttl\", F.col(\"header.invoice_amount\") * F.col(\"tax.tax_rate\"))\n        .select(\"invoice_id\", \"invoice_amount\", \"tax_ttl\")\n    )\n",
       "new_script": "from pyspark.sql import functions as F\n\n\ndef transform(src_invoice_header, src_invoice_tax):\n    return (\n        src_invoice_header.alias(\"header\")\n        .join(src_invoice_tax.alias(\"tax\"), on=\"InvoiceIdentifier\", how=\"left\")\n        .withColumn(\"InvoiceTaxValue\", F.col(\"header.NetInvoiceAmount\") * F.col(\"tax.AppliedTaxRate\"))\n        .select(\"InvoiceIdentifier\", \"NetInvoiceAmount\", \"InvoiceTaxValue\")\n    )\n",
+      "sql_fixture": {
+        "issue_key_column": "InvoiceIdentifier",
+        "issue_key_values": [
+          "TINVOICE_001"
+        ],
+        "target_table_schema": [
+          {
+            "name": "InvoiceIdentifier",
+            "type": "TEXT"
+          },
+          {
+            "name": "NetInvoiceAmount",
+            "type": "REAL"
+          },
+          {
+            "name": "InvoiceTaxValue",
+            "type": "REAL"
+          }
+        ],
+        "target_rows": [
+          {
+            "InvoiceIdentifier": "TINVOICE_001",
+            "NetInvoiceAmount": 120.5,
+            "InvoiceTaxValue": 18.07
+          },
+          {
+            "InvoiceIdentifier": "TINVOICE_002",
+            "NetInvoiceAmount": 85.0,
+            "InvoiceTaxValue": 12.75
+          }
+        ],
+        "support_tables": [
+          {
+            "name": "src_invoice_header",
+            "schema": [
+              {
+                "name": "InvoiceIdentifier",
+                "type": "TEXT"
+              },
+              {
+                "name": "NetInvoiceAmount",
+                "type": "REAL"
+              }
+            ],
+            "rows": [
+              {
+                "InvoiceIdentifier": "TINVOICE_001",
+                "NetInvoiceAmount": 120.5
+              },
+              {
+                "InvoiceIdentifier": "TINVOICE_002",
+                "NetInvoiceAmount": 85.0
+              }
+            ]
+          },
+          {
+            "name": "src_invoice_tax",
+            "schema": [
+              {
+                "name": "InvoiceIdentifier",
+                "type": "TEXT"
+              },
+              {
+                "name": "AppliedRate",
+                "type": "TEXT"
+              }
+            ],
+            "rows": [
+              {
+                "InvoiceIdentifier": "TINVOICE_001",
+                "AppliedRate": 0.15
+              },
+              {
+                "InvoiceIdentifier": "TINVOICE_002",
+                "AppliedRate": 0.15
+              }
+            ]
+          }
+        ],
+        "primary_query_template": "SELECT * FROM \"tinvoice_new\" WHERE \"InvoiceIdentifier\" IN (:issue_keys) ORDER BY \"InvoiceIdentifier\"",
+        "expected_findings": [
+          "Current target table stores the derived value in InvoiceTaxValue instead of TotalTax."
+        ],
+        "diagnostic_hints": {
+          "focus_column": "TotalTax",
+          "wrong_output_column": "InvoiceTaxValue"
+        }
+      },
       "old_transformation_script_path": "fixtures/scripts/old/fin/tinvoice.py",
       "new_transformation_script_path": "fixtures/scripts/new/fin/tinvoice.py"
     },
@@ -286,6 +558,106 @@
       ],
       "old_script": "from pyspark.sql import functions as F\n\n\ndef transform(src_order_header, src_order_status):\n    return (\n        src_order_header.alias(\"header\")\n        .join(src_order_status.alias(\"status\"), on=\"order_id\", how=\"left\")\n        .select(\"order_id\", F.col(\"status.settlement_flag\").alias(\"settlement_flag\"))\n    )\n",
       "new_script": "from pyspark.sql import functions as F\n\n\ndef transform(src_order_header, src_order_status):\n    status_filtered = src_order_status.filter(F.col(\"StatusEffectiveTs\").isNotNull())\n    return (\n        src_order_header.alias(\"header\")\n        .join(status_filtered.alias(\"status\"), on=[\"OrderIdentifier\", \"RegionalMarketCode\"], how=\"left\")\n        .select(\"OrderIdentifier\", F.col(\"status.SettlementStatusCode\").alias(\"SettlementStatusCode\"))\n    )\n",
+      "sql_fixture": {
+        "issue_key_column": "OrderIdentifier",
+        "issue_key_values": [
+          "TORDER_001"
+        ],
+        "target_table_schema": [
+          {
+            "name": "OrderIdentifier",
+            "type": "TEXT"
+          },
+          {
+            "name": "RegionalMarketCode",
+            "type": "TEXT"
+          },
+          {
+            "name": "SettlementStatusCode",
+            "type": "TEXT"
+          }
+        ],
+        "target_rows": [
+          {
+            "OrderIdentifier": "TORDER_001",
+            "RegionalMarketCode": "APAC",
+            "SettlementStatusCode": null
+          },
+          {
+            "OrderIdentifier": "TORDER_002",
+            "RegionalMarketCode": "EMEA",
+            "SettlementStatusCode": "SETTLED"
+          }
+        ],
+        "support_tables": [
+          {
+            "name": "src_order_header",
+            "schema": [
+              {
+                "name": "OrderIdentifier",
+                "type": "TEXT"
+              },
+              {
+                "name": "RegionalMarketCode",
+                "type": "TEXT"
+              }
+            ],
+            "rows": [
+              {
+                "OrderIdentifier": "TORDER_001",
+                "RegionalMarketCode": "APAC"
+              },
+              {
+                "OrderIdentifier": "TORDER_002",
+                "RegionalMarketCode": "EMEA"
+              }
+            ]
+          },
+          {
+            "name": "src_order_status",
+            "schema": [
+              {
+                "name": "OrderIdentifier",
+                "type": "TEXT"
+              },
+              {
+                "name": "RegionalMarketCode",
+                "type": "TEXT"
+              },
+              {
+                "name": "SettlementStatusCode",
+                "type": "TEXT"
+              }
+            ],
+            "rows": [
+              {
+                "OrderIdentifier": "TORDER_001",
+                "RegionalMarketCode": "NA",
+                "SettlementStatusCode": "SETTLED"
+              },
+              {
+                "OrderIdentifier": "TORDER_002",
+                "RegionalMarketCode": "EMEA",
+                "SettlementStatusCode": "SETTLED"
+              }
+            ]
+          }
+        ],
+        "primary_query_template": "SELECT * FROM \"torder_new\" WHERE \"OrderIdentifier\" IN (:issue_keys) ORDER BY \"OrderIdentifier\"",
+        "expected_findings": [
+          "SettlementStatusCode is null in the current target table for the issue keys.",
+          "Support rows exist but the join dimensions for RegionalMarketCode do not align."
+        ],
+        "diagnostic_hints": {
+          "focus_column": "SettlementStatusCode",
+          "join_columns": [
+            "OrderIdentifier",
+            "RegionalMarketCode"
+          ],
+          "support_lookup_table": "src_order_status",
+          "support_focus_column": "SettlementStatusCode"
+        }
+      },
       "old_transformation_script_path": "fixtures/scripts/old/fin/torder.py",
       "new_transformation_script_path": "fixtures/scripts/new/fin/torder.py"
     },
@@ -343,6 +715,88 @@
       ],
       "old_script": "from pyspark.sql import functions as F\n\n\ndef transform(src_inventory, src_warehouse):\n    return (\n        src_inventory.alias(\"inventory\")\n        .join(src_warehouse.alias(\"warehouse\"), on=\"warehouse_id\", how=\"left\")\n        .select(\"inventory_id\", F.col(\"warehouse.warehouse_status\").alias(\"warehouse_status\"))\n    )\n",
       "new_script": "from pyspark.sql import functions as F\n\n\ndef transform(src_inventory, src_warehouse):\n    return (\n        src_inventory.alias(\"inventory\")\n        .join(src_warehouse.alias(\"warehouse\"), on=\"WarehouseIdentifier\", how=\"left\")\n        .filter(F.col(\"warehouse.WarehouseOperatingState\") == \"ACTIVE\")\n        .select(\"InventoryIdentifier\", F.col(\"warehouse.WarehouseOperatingState\").alias(\"WarehouseOperatingState\"))\n    )\n",
+      "sql_fixture": {
+        "issue_key_column": "InventoryIdentifier",
+        "issue_key_values": [
+          "TINVENTORY_001"
+        ],
+        "target_table_schema": [
+          {
+            "name": "InventoryIdentifier",
+            "type": "TEXT"
+          },
+          {
+            "name": "WarehouseOperatingState",
+            "type": "TEXT"
+          }
+        ],
+        "target_rows": [
+          {
+            "InventoryIdentifier": "TINVENTORY_002",
+            "WarehouseOperatingState": "ACTIVE"
+          }
+        ],
+        "support_tables": [
+          {
+            "name": "src_inventory",
+            "schema": [
+              {
+                "name": "InventoryIdentifier",
+                "type": "TEXT"
+              },
+              {
+                "name": "WarehouseIdentifier",
+                "type": "TEXT"
+              }
+            ],
+            "rows": [
+              {
+                "InventoryIdentifier": "TINVENTORY_001",
+                "WarehouseIdentifier": "WH-001"
+              },
+              {
+                "InventoryIdentifier": "TINVENTORY_002",
+                "WarehouseIdentifier": "WH-002"
+              }
+            ]
+          },
+          {
+            "name": "src_warehouse",
+            "schema": [
+              {
+                "name": "WarehouseIdentifier",
+                "type": "TEXT"
+              },
+              {
+                "name": "WarehouseOperatingState",
+                "type": "TEXT"
+              }
+            ],
+            "rows": [
+              {
+                "WarehouseIdentifier": "WH-001",
+                "WarehouseOperatingState": "INACTIVE"
+              },
+              {
+                "WarehouseIdentifier": "WH-002",
+                "WarehouseOperatingState": "ACTIVE"
+              }
+            ]
+          }
+        ],
+        "primary_query_template": "SELECT * FROM \"tinventory_new\" WHERE \"InventoryIdentifier\" IN (:issue_keys) ORDER BY \"InventoryIdentifier\"",
+        "expected_findings": [
+          "No current target-table rows were produced for the issue key because the joined status did not meet the ACTIVE filter."
+        ],
+        "diagnostic_hints": {
+          "focus_column": "WarehouseOperatingState",
+          "filter_column": "WarehouseOperatingState",
+          "filter_value": "ACTIVE",
+          "join_base_table": "src_inventory",
+          "support_lookup_table": "src_warehouse",
+          "support_join_column": "WarehouseIdentifier"
+        }
+      },
       "old_transformation_script_path": "fixtures/scripts/old/ops/tinventory.py",
       "new_transformation_script_path": "fixtures/scripts/new/ops/tinventory.py"
     },
@@ -400,6 +854,77 @@
       ],
       "old_script": "from pyspark.sql import functions as F\n\n\ndef transform(src_profile_base, src_profile_audit):\n    audit_cols = src_profile_audit.select(\"profile_id\", \"last_reviewed\")\n    return (\n        src_profile_base.alias(\"base\")\n        .join(audit_cols.alias(\"audit\"), on=\"profile_id\", how=\"left\")\n        .select(\"profile_id\", F.col(\"audit.last_reviewed\").alias(\"last_reviewed\"))\n    )\n",
       "new_script": "from pyspark.sql import functions as F\n\n\ndef transform(src_profile_base, src_profile_audit):\n    audit_cols = src_profile_audit.select(\"ProfileIdentifier\")\n    return (\n        src_profile_base.alias(\"base\")\n        .join(audit_cols.alias(\"audit\"), on=\"ProfileIdentifier\", how=\"left\")\n        .select(\"ProfileIdentifier\")\n    )\n",
+      "sql_fixture": {
+        "issue_key_column": "ProfileIdentifier",
+        "issue_key_values": [
+          "TPROFILE_001"
+        ],
+        "target_table_schema": [
+          {
+            "name": "ProfileIdentifier",
+            "type": "TEXT"
+          }
+        ],
+        "target_rows": [
+          {
+            "ProfileIdentifier": "TPROFILE_001"
+          },
+          {
+            "ProfileIdentifier": "TPROFILE_002"
+          }
+        ],
+        "support_tables": [
+          {
+            "name": "src_profile_base",
+            "schema": [
+              {
+                "name": "ProfileIdentifier",
+                "type": "TEXT"
+              }
+            ],
+            "rows": [
+              {
+                "ProfileIdentifier": "TPROFILE_001"
+              },
+              {
+                "ProfileIdentifier": "TPROFILE_002"
+              }
+            ]
+          },
+          {
+            "name": "src_profile_audit",
+            "schema": [
+              {
+                "name": "ProfileIdentifier",
+                "type": "TEXT"
+              },
+              {
+                "name": "ProfileReviewCompletedTs",
+                "type": "TEXT"
+              }
+            ],
+            "rows": [
+              {
+                "ProfileIdentifier": "TPROFILE_001",
+                "ProfileReviewCompletedTs": "2026-04-03T09:15:00"
+              },
+              {
+                "ProfileIdentifier": "TPROFILE_002",
+                "ProfileReviewCompletedTs": "2026-04-04T09:15:00"
+              }
+            ]
+          }
+        ],
+        "primary_query_template": "SELECT * FROM \"tprofile_new\" WHERE \"ProfileIdentifier\" IN (:issue_keys) ORDER BY \"ProfileIdentifier\"",
+        "expected_findings": [
+          "Current target table carries the identifier but not the mapped output column ProfileReviewCompletedTs."
+        ],
+        "diagnostic_hints": {
+          "focus_column": "ProfileReviewCompletedTs",
+          "support_lookup_table": "src_profile_audit",
+          "support_focus_column": "ProfileReviewCompletedTs"
+        }
+      },
       "old_transformation_script_path": "fixtures/scripts/old/tty/tprofile.py",
       "new_transformation_script_path": "fixtures/scripts/new/tty/tprofile.py"
     },
@@ -457,6 +982,94 @@
       ],
       "old_script": "from pyspark.sql import functions as F\n\n\ndef transform(src_ledger_header, src_ledger_status):\n    return (\n        src_ledger_header.alias(\"master\")\n        .join(src_ledger_status.alias(\"status\"), on=\"ledger_id\", how=\"left\")\n        .select(\n            F.col(\"master.ledger_id\").alias(\"ledger_id\"),\n            F.col(\"status.legacy_flag\").alias(\"legacy_flag\"),\n        )\n    )\n",
       "new_script": "from pyspark.sql import functions as F\n\n\ndef transform(src_ledger_header, src_ledger_status):\n    return (\n        src_ledger_header.alias(\"master\")\n        .join(src_ledger_status.alias(\"status\"), on=\"LedgerIdentifier\", how=\"left\")\n        .select(\n            F.col(\"master.LedgerIdentifier\").alias(\"LedgerIdentifier\"),\n            F.col(\"status.LedgerStatusSourceCode\").alias(\"LedgerMigrationStatusText\"),\n        )\n    )\n",
+      "sql_fixture": {
+        "issue_key_column": "LedgerIdentifier",
+        "issue_key_values": [
+          "TLEDGER_001"
+        ],
+        "target_table_schema": [
+          {
+            "name": "LedgerIdentifier",
+            "type": "TEXT"
+          },
+          {
+            "name": "BusinessLabel",
+            "type": "TEXT"
+          },
+          {
+            "name": "LedgerMigrationStatusText",
+            "type": "REAL"
+          }
+        ],
+        "target_rows": [
+          {
+            "LedgerIdentifier": "TLEDGER_001",
+            "BusinessLabel": "TLEDGER row 1",
+            "LedgerMigrationStatusText": "ACTIVE"
+          },
+          {
+            "LedgerIdentifier": "TLEDGER_002",
+            "BusinessLabel": "TLEDGER row 2",
+            "LedgerMigrationStatusText": "PENDING"
+          }
+        ],
+        "support_tables": [
+          {
+            "name": "src_ledger_header",
+            "schema": [
+              {
+                "name": "LedgerIdentifier",
+                "type": "TEXT"
+              },
+              {
+                "name": "BusinessLabel",
+                "type": "TEXT"
+              }
+            ],
+            "rows": [
+              {
+                "LedgerIdentifier": "TLEDGER_001",
+                "BusinessLabel": "TLEDGER row 1"
+              },
+              {
+                "LedgerIdentifier": "TLEDGER_002",
+                "BusinessLabel": "TLEDGER row 2"
+              }
+            ]
+          },
+          {
+            "name": "src_ledger_status",
+            "schema": [
+              {
+                "name": "LedgerIdentifier",
+                "type": "TEXT"
+              },
+              {
+                "name": "LedgerMigrationStatusText",
+                "type": "REAL"
+              }
+            ],
+            "rows": [
+              {
+                "LedgerIdentifier": "TLEDGER_001",
+                "LedgerMigrationStatusText": "ACTIVE"
+              },
+              {
+                "LedgerIdentifier": "TLEDGER_002",
+                "LedgerMigrationStatusText": "PENDING"
+              }
+            ]
+          }
+        ],
+        "primary_query_template": "SELECT * FROM \"tledger_new\" WHERE \"LedgerIdentifier\" IN (:issue_keys) ORDER BY \"LedgerIdentifier\"",
+        "expected_findings": [
+          "Current target table exposes LedgerMigrationStatusText instead of the mapped column LedgerMigrationStatus."
+        ],
+        "diagnostic_hints": {
+          "focus_column": "LedgerMigrationStatus",
+          "wrong_output_column": "LedgerMigrationStatusText"
+        }
+      },
       "old_transformation_script_path": "fixtures/scripts/old/fin/tledger.py",
       "new_transformation_script_path": "fixtures/scripts/new/fin/tledger.py"
     },
@@ -514,8 +1127,533 @@
       ],
       "old_script": "from pyspark.sql import functions as F\n\n\ndef transform(src_balance_header, src_balance_snapshot):\n    return src_balance_header.select(\"balance_id\", \"balance_amount\")\n",
       "new_script": "from pyspark.sql import functions as F\n\n\ndef transform(src_balance_header, src_balance_snapshot):\n    return src_balance_snapshot.select(\"BalanceIdentifier\", \"balance_amount_snapshot\")\n",
+      "sql_fixture": {
+        "issue_key_column": "BalanceIdentifier",
+        "issue_key_values": [
+          "TBALANCE_001"
+        ],
+        "target_table_schema": [
+          {
+            "name": "BalanceIdentifier",
+            "type": "TEXT"
+          },
+          {
+            "name": "GovernanceReviewIndex",
+            "type": "REAL"
+          }
+        ],
+        "target_rows": [
+          {
+            "BalanceIdentifier": "TBALANCE_001",
+            "GovernanceReviewIndex": 0.71
+          },
+          {
+            "BalanceIdentifier": "TBALANCE_002",
+            "GovernanceReviewIndex": 0.68
+          }
+        ],
+        "support_tables": [
+          {
+            "name": "src_balance_header",
+            "schema": [
+              {
+                "name": "BalanceIdentifier",
+                "type": "TEXT"
+              },
+              {
+                "name": "GovernanceReviewIndex",
+                "type": "REAL"
+              }
+            ],
+            "rows": [
+              {
+                "BalanceIdentifier": "TBALANCE_001",
+                "GovernanceReviewIndex": 0.71
+              },
+              {
+                "BalanceIdentifier": "TBALANCE_002",
+                "GovernanceReviewIndex": 0.68
+              }
+            ]
+          },
+          {
+            "name": "src_balance_snapshot",
+            "schema": [
+              {
+                "name": "BalanceIdentifier",
+                "type": "TEXT"
+              },
+              {
+                "name": "balance_amount_snapshot",
+                "type": "REAL"
+              }
+            ],
+            "rows": [
+              {
+                "BalanceIdentifier": "TBALANCE_001",
+                "balance_amount_snapshot": 125.5
+              },
+              {
+                "BalanceIdentifier": "TBALANCE_002",
+                "balance_amount_snapshot": 126.0
+              }
+            ]
+          }
+        ],
+        "primary_query_template": "SELECT * FROM \"tbalance_new\" WHERE \"BalanceIdentifier\" IN (:issue_keys) ORDER BY \"BalanceIdentifier\"",
+        "expected_findings": [
+          "Current target-table values are present, but the SQL evidence alone does not isolate the regression."
+        ],
+        "diagnostic_hints": {
+          "focus_column": "GovernanceReviewIndex"
+        }
+      },
       "old_transformation_script_path": "fixtures/scripts/old/ops/tbalance.py",
       "new_transformation_script_path": "fixtures/scripts/new/ops/tbalance.py"
+    },
+    {
+      "id": "ops_tdupshipment_duplicate_rows",
+      "golden": false,
+      "scenario_type": "duplicate_data",
+      "division": "OPS",
+      "table_name": "TDUPSHIPMENT",
+      "old_target_table_name": "tdupshipment_old",
+      "new_target_table_name": "tdupshipment_new",
+      "source_tables": [
+        "src_dup_shipment_base",
+        "src_dup_shipment_status"
+      ],
+      "owner_users": [
+        "ops_owner",
+        "data_support_ops"
+      ],
+      "support_team": "data_team_ops",
+      "business_description": "Duplicate shipment status records caused by duplicate enrichment rows.",
+      "criticality": "medium",
+      "issue_title": "OPS_TDUPSHIPMENT_Column ShipmentStatus duplicated in current target table",
+      "focus_columns": [
+        "ShipmentStatus"
+      ],
+      "root_cause_family": "join_null_spike",
+      "decision": "investigate_join_logic",
+      "expected_keywords": [
+        "ShipmentStatus",
+        "duplicate",
+        "ShipmentStatusSourceCode"
+      ],
+      "mapping_rows": [
+        {
+          "old_system": "Gavin2",
+          "new_system": "Gavin3",
+          "old_table_name": "tdupshipment_old",
+          "new_table_name": "tdupshipment_new",
+          "old_column_name": "shipment_id",
+          "new_column_name": "ShipmentIdentifier",
+          "data_type_old": "string",
+          "data_type_new": "string"
+        },
+        {
+          "old_system": "Gavin2",
+          "new_system": "Gavin3",
+          "old_table_name": "tdupshipment_old",
+          "new_table_name": "tdupshipment_new",
+          "old_column_name": "shipment_status",
+          "new_column_name": "ShipmentStatus",
+          "data_type_old": "string",
+          "data_type_new": "string"
+        }
+      ],
+      "old_script": "from pyspark.sql import functions as F\n\n\ndef transform(src_dup_shipment_base, src_dup_shipment_status):\n    return (\n        src_dup_shipment_base.alias(\"master\")\n        .join(src_dup_shipment_status.alias(\"status\"), on=\"shipment_id\", how=\"left\")\n        .select(\n            F.col(\"master.shipment_id\").alias(\"shipment_id\"),\n            F.col(\"status.shipment_status\").alias(\"shipment_status\"),\n        )\n    )\n",
+      "new_script": "from pyspark.sql import functions as F\n\n\ndef transform(src_dup_shipment_base, src_dup_shipment_status):\n    return (\n        src_dup_shipment_base.alias(\"base\")\n        .join(src_dup_shipment_status.alias(\"status\"), on=\"ShipmentIdentifier\", how=\"left\")\n        .select(\n            F.col(\"base.ShipmentIdentifier\").alias(\"ShipmentIdentifier\"),\n            F.col(\"status.ShipmentStatusSourceCode\").alias(\"ShipmentStatus\"),\n        )\n    )\n",
+      "sql_fixture": {
+        "issue_key_column": "ShipmentIdentifier",
+        "issue_key_values": [
+          "TDUPSHIPMENT_001"
+        ],
+        "target_table_schema": [
+          {
+            "name": "ShipmentIdentifier",
+            "type": "TEXT"
+          },
+          {
+            "name": "ShipmentStatus",
+            "type": "TEXT"
+          }
+        ],
+        "target_rows": [
+          {
+            "ShipmentIdentifier": "TDUPSHIPMENT_001",
+            "ShipmentStatus": "READY"
+          },
+          {
+            "ShipmentIdentifier": "TDUPSHIPMENT_001",
+            "ShipmentStatus": "READY"
+          },
+          {
+            "ShipmentIdentifier": "TDUPSHIPMENT_002",
+            "ShipmentStatus": "IN_TRANSIT"
+          }
+        ],
+        "support_tables": [
+          {
+            "name": "src_dup_shipment_base",
+            "schema": [
+              {
+                "name": "ShipmentIdentifier",
+                "type": "TEXT"
+              }
+            ],
+            "rows": [
+              {
+                "ShipmentIdentifier": "TDUPSHIPMENT_001"
+              },
+              {
+                "ShipmentIdentifier": "TDUPSHIPMENT_002"
+              }
+            ]
+          },
+          {
+            "name": "src_dup_shipment_status",
+            "schema": [
+              {
+                "name": "ShipmentIdentifier",
+                "type": "TEXT"
+              },
+              {
+                "name": "ShipmentStatusSourceCode",
+                "type": "TEXT"
+              }
+            ],
+            "rows": [
+              {
+                "ShipmentIdentifier": "TDUPSHIPMENT_001",
+                "ShipmentStatusSourceCode": "READY"
+              },
+              {
+                "ShipmentIdentifier": "TDUPSHIPMENT_001",
+                "ShipmentStatusSourceCode": "READY"
+              },
+              {
+                "ShipmentIdentifier": "TDUPSHIPMENT_002",
+                "ShipmentStatusSourceCode": "IN_TRANSIT"
+              }
+            ]
+          }
+        ],
+        "primary_query_template": "SELECT * FROM \"tdupshipment_new\" WHERE \"ShipmentIdentifier\" IN (:issue_keys) ORDER BY \"ShipmentIdentifier\"",
+        "expected_findings": [
+          "Duplicate current target-table rows exist for the issue key on ShipmentIdentifier."
+        ],
+        "diagnostic_hints": {
+          "focus_column": "ShipmentStatus",
+          "duplicate_key_column": "ShipmentIdentifier"
+        }
+      },
+      "old_transformation_script_path": "fixtures/scripts/old/ops/tdupshipment.py",
+      "new_transformation_script_path": "fixtures/scripts/new/ops/tdupshipment.py"
+    },
+    {
+      "id": "tty_teventlog_invalid_date_format",
+      "golden": false,
+      "scenario_type": "invalid_type_format",
+      "division": "TTY",
+      "table_name": "TEVENTLOG",
+      "old_target_table_name": "teventlog_old",
+      "new_target_table_name": "teventlog_new",
+      "source_tables": [
+        "src_eventlog_base",
+        "src_eventlog_audit"
+      ],
+      "owner_users": [
+        "tty_owner",
+        "data_support_tty"
+      ],
+      "support_team": "data_team_tty",
+      "business_description": "Event log timestamps loaded without validating source date strings.",
+      "criticality": "medium",
+      "issue_title": "TTY_TEVENTLOG_Column EventOccurredTs contains string date values",
+      "focus_columns": [
+        "EventOccurredTs"
+      ],
+      "root_cause_family": "source_column_disappearance",
+      "decision": "upstream_source_check_required",
+      "expected_keywords": [
+        "EventOccurredTs",
+        "RawEventOccurredTs",
+        "cast"
+      ],
+      "mapping_rows": [
+        {
+          "old_system": "Gavin2",
+          "new_system": "Gavin3",
+          "old_table_name": "teventlog_old",
+          "new_table_name": "teventlog_new",
+          "old_column_name": "event_id",
+          "new_column_name": "EventIdentifier",
+          "data_type_old": "string",
+          "data_type_new": "string"
+        },
+        {
+          "old_system": "Gavin2",
+          "new_system": "Gavin3",
+          "old_table_name": "teventlog_old",
+          "new_table_name": "teventlog_new",
+          "old_column_name": "occurred_ts",
+          "new_column_name": "EventOccurredTs",
+          "data_type_old": "timestamp",
+          "data_type_new": "timestamp"
+        }
+      ],
+      "old_script": "from pyspark.sql import functions as F\n\n\ndef transform(src_eventlog_base, src_eventlog_audit):\n    audit_cols = src_eventlog_audit.select(\"event_id\", \"occurred_ts\")\n    return (\n        src_eventlog_base.alias(\"base\")\n        .join(audit_cols.alias(\"audit\"), on=\"event_id\", how=\"left\")\n        .select(\"event_id\", F.col(\"audit.occurred_ts\").alias(\"occurred_ts\"))\n    )\n",
+      "new_script": "from pyspark.sql import functions as F\n\n\ndef transform(src_eventlog_base, src_eventlog_audit):\n    audit_cols = src_eventlog_audit.select(\"EventIdentifier\", \"RawEventOccurredTs\")\n    return (\n        src_eventlog_base.alias(\"base\")\n        .join(audit_cols.alias(\"audit\"), on=\"EventIdentifier\", how=\"left\")\n        .select(\n            F.col(\"base.EventIdentifier\").alias(\"EventIdentifier\"),\n            F.col(\"audit.RawEventOccurredTs\").alias(\"EventOccurredTs\"),\n        )\n    )\n",
+      "sql_fixture": {
+        "issue_key_column": "EventIdentifier",
+        "issue_key_values": [
+          "TEVENTLOG_001"
+        ],
+        "target_table_schema": [
+          {
+            "name": "EventIdentifier",
+            "type": "TEXT"
+          },
+          {
+            "name": "EventOccurredTs",
+            "type": "TEXT"
+          }
+        ],
+        "target_rows": [
+          {
+            "EventIdentifier": "TEVENTLOG_001",
+            "EventOccurredTs": "31-APR-2026"
+          },
+          {
+            "EventIdentifier": "TEVENTLOG_002",
+            "EventOccurredTs": "2026-04-02T09:15:00"
+          }
+        ],
+        "support_tables": [
+          {
+            "name": "src_eventlog_base",
+            "schema": [
+              {
+                "name": "EventIdentifier",
+                "type": "TEXT"
+              }
+            ],
+            "rows": [
+              {
+                "EventIdentifier": "TEVENTLOG_001"
+              },
+              {
+                "EventIdentifier": "TEVENTLOG_002"
+              }
+            ]
+          },
+          {
+            "name": "src_eventlog_audit",
+            "schema": [
+              {
+                "name": "EventIdentifier",
+                "type": "TEXT"
+              },
+              {
+                "name": "RawEventOccurredTs",
+                "type": "TEXT"
+              }
+            ],
+            "rows": [
+              {
+                "EventIdentifier": "TEVENTLOG_001",
+                "RawEventOccurredTs": "31-APR-2026"
+              },
+              {
+                "EventIdentifier": "TEVENTLOG_002",
+                "RawEventOccurredTs": "2026-04-02T09:15:00"
+              }
+            ]
+          }
+        ],
+        "primary_query_template": "SELECT * FROM \"teventlog_new\" WHERE \"EventIdentifier\" IN (:issue_keys) ORDER BY \"EventIdentifier\"",
+        "expected_findings": [
+          "Current target-table values for EventOccurredTs contain invalid timestamp-like strings."
+        ],
+        "diagnostic_hints": {
+          "focus_column": "EventOccurredTs",
+          "format_pattern": "timestamp",
+          "support_lookup_table": "src_eventlog_audit"
+        }
+      },
+      "old_transformation_script_path": "fixtures/scripts/old/tty/teventlog.py",
+      "new_transformation_script_path": "fixtures/scripts/new/tty/teventlog.py"
+    },
+    {
+      "id": "fin_torderlink_join_filter_miss",
+      "golden": false,
+      "scenario_type": "join_filter_miss",
+      "division": "FIN",
+      "table_name": "TORDERLINK",
+      "old_target_table_name": "torderlink_old",
+      "new_target_table_name": "torderlink_new",
+      "source_tables": [
+        "src_orderlink_base",
+        "src_orderlink_status"
+      ],
+      "owner_users": [
+        "fin_owner",
+        "data_support_fin"
+      ],
+      "support_team": "data_team_fin",
+      "business_description": "Order link settlement status depends on join eligibility and active filtering.",
+      "criticality": "high",
+      "issue_title": "FIN_TORDERLINK_Column SettlementStatusCode missing after join filter",
+      "focus_columns": [
+        "SettlementStatusCode"
+      ],
+      "root_cause_family": "filter_row_loss",
+      "decision": "investigate_filter_logic",
+      "expected_keywords": [
+        "SettlementStatusCode",
+        "EligibilityFlag",
+        "filter"
+      ],
+      "mapping_rows": [
+        {
+          "old_system": "Gavin2",
+          "new_system": "Gavin3",
+          "old_table_name": "torderlink_old",
+          "new_table_name": "torderlink_new",
+          "old_column_name": "order_id",
+          "new_column_name": "OrderIdentifier",
+          "data_type_old": "string",
+          "data_type_new": "string"
+        },
+        {
+          "old_system": "Gavin2",
+          "new_system": "Gavin3",
+          "old_table_name": "torderlink_old",
+          "new_table_name": "torderlink_new",
+          "old_column_name": "market_code",
+          "new_column_name": "RegionalMarketCode",
+          "data_type_old": "string",
+          "data_type_new": "string"
+        },
+        {
+          "old_system": "Gavin2",
+          "new_system": "Gavin3",
+          "old_table_name": "torderlink_old",
+          "new_table_name": "torderlink_new",
+          "old_column_name": "settlement_flag",
+          "new_column_name": "SettlementStatusCode",
+          "data_type_old": "string",
+          "data_type_new": "string"
+        }
+      ],
+      "old_script": "from pyspark.sql import functions as F\n\n\ndef transform(src_orderlink_base, src_orderlink_status):\n    return (\n        src_orderlink_base.alias(\"header\")\n        .join(src_orderlink_status.alias(\"status\"), on=\"order_id\", how=\"left\")\n        .select(\"order_id\", F.col(\"status.settlement_flag\").alias(\"settlement_flag\"))\n    )\n",
+      "new_script": "from pyspark.sql import functions as F\n\n\ndef transform(src_orderlink_base, src_orderlink_status):\n    status_filtered = src_orderlink_status.filter(F.col(\"EligibilityFlag\") == \"Y\")\n    return (\n        src_orderlink_base.alias(\"base\")\n        .join(status_filtered.alias(\"status\"), on=[\"OrderIdentifier\", \"RegionalMarketCode\"], how=\"left\")\n        .select(\n            F.col(\"base.OrderIdentifier\").alias(\"OrderIdentifier\"),\n            F.col(\"base.RegionalMarketCode\").alias(\"RegionalMarketCode\"),\n            F.col(\"status.SettlementStatusCode\").alias(\"SettlementStatusCode\"),\n        )\n    )\n",
+      "sql_fixture": {
+        "issue_key_column": "OrderIdentifier",
+        "issue_key_values": [
+          "TORDERLINK_001"
+        ],
+        "target_table_schema": [
+          {
+            "name": "OrderIdentifier",
+            "type": "TEXT"
+          },
+          {
+            "name": "RegionalMarketCode",
+            "type": "TEXT"
+          },
+          {
+            "name": "SettlementStatusCode",
+            "type": "TEXT"
+          }
+        ],
+        "target_rows": [
+          {
+            "OrderIdentifier": "TORDERLINK_002",
+            "RegionalMarketCode": "EMEA",
+            "SettlementStatusCode": "SETTLED"
+          }
+        ],
+        "support_tables": [
+          {
+            "name": "src_orderlink_base",
+            "schema": [
+              {
+                "name": "OrderIdentifier",
+                "type": "TEXT"
+              },
+              {
+                "name": "RegionalMarketCode",
+                "type": "TEXT"
+              }
+            ],
+            "rows": [
+              {
+                "OrderIdentifier": "TORDERLINK_001",
+                "RegionalMarketCode": "APAC"
+              },
+              {
+                "OrderIdentifier": "TORDERLINK_002",
+                "RegionalMarketCode": "EMEA"
+              }
+            ]
+          },
+          {
+            "name": "src_orderlink_status",
+            "schema": [
+              {
+                "name": "OrderIdentifier",
+                "type": "TEXT"
+              },
+              {
+                "name": "RegionalMarketCode",
+                "type": "TEXT"
+              },
+              {
+                "name": "SettlementStatusCode",
+                "type": "TEXT"
+              },
+              {
+                "name": "EligibilityFlag",
+                "type": "TEXT"
+              }
+            ],
+            "rows": [
+              {
+                "OrderIdentifier": "TORDERLINK_001",
+                "RegionalMarketCode": "APAC",
+                "SettlementStatusCode": "SETTLED",
+                "EligibilityFlag": "N"
+              },
+              {
+                "OrderIdentifier": "TORDERLINK_002",
+                "RegionalMarketCode": "EMEA",
+                "SettlementStatusCode": "SETTLED",
+                "EligibilityFlag": "Y"
+              }
+            ]
+          }
+        ],
+        "primary_query_template": "SELECT * FROM \"torderlink_new\" WHERE \"OrderIdentifier\" IN (:issue_keys) ORDER BY \"OrderIdentifier\"",
+        "expected_findings": [
+          "No current target-table rows were emitted for the issue key because the join-side row failed the EligibilityFlag filter."
+        ],
+        "diagnostic_hints": {
+          "focus_column": "SettlementStatusCode",
+          "join_columns": [
+            "OrderIdentifier",
+            "RegionalMarketCode"
+          ],
+          "filter_column": "EligibilityFlag",
+          "filter_value": "Y",
+          "join_base_table": "src_orderlink_base",
+          "support_lookup_table": "src_orderlink_status"
+        }
+      },
+      "old_transformation_script_path": "fixtures/scripts/old/fin/torderlink.py",
+      "new_transformation_script_path": "fixtures/scripts/new/fin/torderlink.py"
     },
     {
       "id": "generated_payment_projection_1",
@@ -570,6 +1708,102 @@
       ],
       "old_script": "from pyspark.sql import functions as F\n\n\ndef transform(src_payment_base, src_payment_audit):\n    audit_snapshot = src_payment_audit.select(\n        \"payment_id\",\n        \"payment_score\",\n        \"score_updated_by\",\n    )\n\n    return (\n        src_payment_base.alias(\"base\")\n        .join(audit_snapshot.alias(\"audit\"), on=\"payment_id\", how=\"left\")\n        .select(\n            F.col(\"base.payment_id\").alias(\"payment_id\"),\n            F.col(\"base.payment_category\").alias(\"payment_category\"),\n            F.col(\"audit.payment_score\").alias(\"payment_score\"),\n            F.col(\"audit.score_updated_by\").alias(\"score_updated_by\"),\n        )\n    )\n",
       "new_script": "from pyspark.sql import functions as F\n\n\ndef transform(src_payment_base, src_payment_audit):\n    audit_snapshot = src_payment_audit.select(\n        \"PaymentIdentifier\",\n        \"ScoreUpdatedByUser\",\n    )\n\n    return (\n        src_payment_base.alias(\"base\")\n        .join(audit_snapshot.alias(\"audit\"), on=\"PaymentIdentifier\", how=\"left\")\n        .select(\n            F.col(\"base.PaymentIdentifier\").alias(\"PaymentIdentifier\"),\n            F.col(\"base.PaymentCategoryName\").alias(\"PaymentCategoryName\"),\n            F.col(\"audit.ScoreUpdatedByUser\").alias(\"ScoreUpdatedByUser\"),\n        )\n    )\n",
+      "sql_fixture": {
+        "issue_key_column": "PaymentIdentifier",
+        "issue_key_values": [
+          "TPAYMENTQUALITY_001"
+        ],
+        "target_table_schema": [
+          {
+            "name": "PaymentIdentifier",
+            "type": "TEXT"
+          },
+          {
+            "name": "BusinessLabel",
+            "type": "TEXT"
+          },
+          {
+            "name": "AuditUser",
+            "type": "TEXT"
+          }
+        ],
+        "target_rows": [
+          {
+            "PaymentIdentifier": "TPAYMENTQUALITY_001",
+            "BusinessLabel": "TPAYMENTQUALITY row 1",
+            "AuditUser": "loader_a"
+          },
+          {
+            "PaymentIdentifier": "TPAYMENTQUALITY_002",
+            "BusinessLabel": "TPAYMENTQUALITY row 2",
+            "AuditUser": "loader_b"
+          }
+        ],
+        "support_tables": [
+          {
+            "name": "src_payment_base",
+            "schema": [
+              {
+                "name": "PaymentIdentifier",
+                "type": "TEXT"
+              },
+              {
+                "name": "BusinessLabel",
+                "type": "TEXT"
+              }
+            ],
+            "rows": [
+              {
+                "PaymentIdentifier": "TPAYMENTQUALITY_001",
+                "BusinessLabel": "TPAYMENTQUALITY row 1"
+              },
+              {
+                "PaymentIdentifier": "TPAYMENTQUALITY_002",
+                "BusinessLabel": "TPAYMENTQUALITY row 2"
+              }
+            ]
+          },
+          {
+            "name": "src_payment_audit",
+            "schema": [
+              {
+                "name": "PaymentIdentifier",
+                "type": "TEXT"
+              },
+              {
+                "name": "PaymentQualityIndex",
+                "type": "REAL"
+              },
+              {
+                "name": "AuditUser",
+                "type": "TEXT"
+              }
+            ],
+            "rows": [
+              {
+                "PaymentIdentifier": "TPAYMENTQUALITY_001",
+                "PaymentQualityIndex": "2026-04-01T09:15:00",
+                "AuditUser": "loader_a"
+              },
+              {
+                "PaymentIdentifier": "TPAYMENTQUALITY_002",
+                "PaymentQualityIndex": "2026-04-02T09:15:00",
+                "AuditUser": "loader_b"
+              }
+            ]
+          }
+        ],
+        "primary_query_template": "SELECT * FROM \"tpaymentquality_new\" WHERE \"PaymentIdentifier\" IN (:issue_keys) ORDER BY \"PaymentIdentifier\"",
+        "expected_findings": [
+          "Current target table tpaymentquality_new does not contain PaymentQualityIndex.",
+          "Support table src_payment_audit still carries PaymentQualityIndex for the issue keys."
+        ],
+        "diagnostic_hints": {
+          "focus_column": "PaymentQualityIndex",
+          "support_lookup_table": "src_payment_audit",
+          "support_focus_column": "PaymentQualityIndex"
+        }
+      },
       "old_transformation_script_path": "fixtures/scripts/old/fin/tpaymentquality.py",
       "new_transformation_script_path": "fixtures/scripts/new/fin/tpaymentquality.py"
     },
@@ -626,6 +1860,94 @@
       ],
       "old_script": "from pyspark.sql import functions as F\n\n\ndef transform(src_shipment_base, src_shipment_status):\n    return (\n        src_shipment_base.alias(\"master\")\n        .join(src_shipment_status.alias(\"status\"), on=\"shipment_id\", how=\"left\")\n        .select(\n            F.col(\"master.shipment_id\").alias(\"shipment_id\"),\n            F.col(\"status.shpmnt_status\").alias(\"shpmnt_status\"),\n        )\n    )\n",
       "new_script": "from pyspark.sql import functions as F\n\n\ndef transform(src_shipment_base, src_shipment_status):\n    return (\n        src_shipment_base.alias(\"master\")\n        .join(src_shipment_status.alias(\"status\"), on=\"ShipmentIdentifier\", how=\"left\")\n        .select(\n            F.col(\"master.ShipmentIdentifier\").alias(\"ShipmentIdentifier\"),\n            F.col(\"status.ShipmentStatusSourceCode\").alias(\"ShipmentStatusLabel\"),\n        )\n    )\n",
+      "sql_fixture": {
+        "issue_key_column": "ShipmentIdentifier",
+        "issue_key_values": [
+          "TSHIPMENT_001"
+        ],
+        "target_table_schema": [
+          {
+            "name": "ShipmentIdentifier",
+            "type": "TEXT"
+          },
+          {
+            "name": "BusinessLabel",
+            "type": "TEXT"
+          },
+          {
+            "name": "ShipmentStatusLabel",
+            "type": "TEXT"
+          }
+        ],
+        "target_rows": [
+          {
+            "ShipmentIdentifier": "TSHIPMENT_001",
+            "BusinessLabel": "TSHIPMENT row 1",
+            "ShipmentStatusLabel": "ACTIVE"
+          },
+          {
+            "ShipmentIdentifier": "TSHIPMENT_002",
+            "BusinessLabel": "TSHIPMENT row 2",
+            "ShipmentStatusLabel": "PENDING"
+          }
+        ],
+        "support_tables": [
+          {
+            "name": "src_shipment_base",
+            "schema": [
+              {
+                "name": "ShipmentIdentifier",
+                "type": "TEXT"
+              },
+              {
+                "name": "BusinessLabel",
+                "type": "TEXT"
+              }
+            ],
+            "rows": [
+              {
+                "ShipmentIdentifier": "TSHIPMENT_001",
+                "BusinessLabel": "TSHIPMENT row 1"
+              },
+              {
+                "ShipmentIdentifier": "TSHIPMENT_002",
+                "BusinessLabel": "TSHIPMENT row 2"
+              }
+            ]
+          },
+          {
+            "name": "src_shipment_status",
+            "schema": [
+              {
+                "name": "ShipmentIdentifier",
+                "type": "TEXT"
+              },
+              {
+                "name": "ShipmentStatusLabel",
+                "type": "TEXT"
+              }
+            ],
+            "rows": [
+              {
+                "ShipmentIdentifier": "TSHIPMENT_001",
+                "ShipmentStatusLabel": "ACTIVE"
+              },
+              {
+                "ShipmentIdentifier": "TSHIPMENT_002",
+                "ShipmentStatusLabel": "PENDING"
+              }
+            ]
+          }
+        ],
+        "primary_query_template": "SELECT * FROM \"tshipment_new\" WHERE \"ShipmentIdentifier\" IN (:issue_keys) ORDER BY \"ShipmentIdentifier\"",
+        "expected_findings": [
+          "Current target table exposes ShipmentStatusLabel instead of the mapped column ShipmentStatus."
+        ],
+        "diagnostic_hints": {
+          "focus_column": "ShipmentStatus",
+          "wrong_output_column": "ShipmentStatusLabel"
+        }
+      },
       "old_transformation_script_path": "fixtures/scripts/old/ops/tshipment.py",
       "new_transformation_script_path": "fixtures/scripts/new/ops/tshipment.py"
     },
@@ -682,6 +2004,94 @@
       ],
       "old_script": "from pyspark.sql import functions as F\n\n\ndef transform(src_billing_base, src_billing_adjustment):\n    return (\n        src_billing_base.alias(\"header\")\n        .join(src_billing_adjustment.alias(\"tax\"), on=\"bill_id\", how=\"left\")\n        .withColumn(\"invoice_variance\", F.col(\"header.invoice_amount\") * F.col(\"tax.adjustment_ratio\"))\n        .select(\"bill_id\", \"invoice_amount\", \"invoice_variance\")\n    )\n",
       "new_script": "from pyspark.sql import functions as F\n\n\ndef transform(src_billing_base, src_billing_adjustment):\n    return (\n        src_billing_base.alias(\"header\")\n        .join(src_billing_adjustment.alias(\"tax\"), on=\"BillingIdentifier\", how=\"left\")\n        .withColumn(\"BillingVarianceValue\", F.col(\"header.BillingAmountValue\") * F.col(\"tax.AdjustmentRatioValue\"))\n        .select(\"BillingIdentifier\", \"BillingAmountValue\", \"BillingVarianceValue\")\n    )\n",
+      "sql_fixture": {
+        "issue_key_column": "BillingIdentifier",
+        "issue_key_values": [
+          "TBILLINGVARIANCE_001"
+        ],
+        "target_table_schema": [
+          {
+            "name": "BillingIdentifier",
+            "type": "TEXT"
+          },
+          {
+            "name": "NetAmountValue",
+            "type": "REAL"
+          },
+          {
+            "name": "BillingVarianceAmountValue",
+            "type": "REAL"
+          }
+        ],
+        "target_rows": [
+          {
+            "BillingIdentifier": "TBILLINGVARIANCE_001",
+            "NetAmountValue": 120.5,
+            "BillingVarianceAmountValue": 18.07
+          },
+          {
+            "BillingIdentifier": "TBILLINGVARIANCE_002",
+            "NetAmountValue": 85.0,
+            "BillingVarianceAmountValue": 12.75
+          }
+        ],
+        "support_tables": [
+          {
+            "name": "src_billing_base",
+            "schema": [
+              {
+                "name": "BillingIdentifier",
+                "type": "TEXT"
+              },
+              {
+                "name": "NetAmountValue",
+                "type": "REAL"
+              }
+            ],
+            "rows": [
+              {
+                "BillingIdentifier": "TBILLINGVARIANCE_001",
+                "NetAmountValue": 120.5
+              },
+              {
+                "BillingIdentifier": "TBILLINGVARIANCE_002",
+                "NetAmountValue": 85.0
+              }
+            ]
+          },
+          {
+            "name": "src_billing_adjustment",
+            "schema": [
+              {
+                "name": "BillingIdentifier",
+                "type": "TEXT"
+              },
+              {
+                "name": "AppliedRate",
+                "type": "TEXT"
+              }
+            ],
+            "rows": [
+              {
+                "BillingIdentifier": "TBILLINGVARIANCE_001",
+                "AppliedRate": 0.15
+              },
+              {
+                "BillingIdentifier": "TBILLINGVARIANCE_002",
+                "AppliedRate": 0.15
+              }
+            ]
+          }
+        ],
+        "primary_query_template": "SELECT * FROM \"tbillingvariance_new\" WHERE \"BillingIdentifier\" IN (:issue_keys) ORDER BY \"BillingIdentifier\"",
+        "expected_findings": [
+          "Current target table stores the derived value in BillingVarianceAmountValue instead of BillingVarianceAmount."
+        ],
+        "diagnostic_hints": {
+          "focus_column": "BillingVarianceAmount",
+          "wrong_output_column": "BillingVarianceAmountValue"
+        }
+      },
       "old_transformation_script_path": "fixtures/scripts/old/fin/tbillingvariance.py",
       "new_transformation_script_path": "fixtures/scripts/new/fin/tbillingvariance.py"
     },
@@ -738,6 +2148,77 @@
       ],
       "old_script": "from pyspark.sql import functions as F\n\n\ndef transform(src_profile_stage, src_profile_history):\n    audit_cols = src_profile_history.select(\"profile_key\", \"reviewed_on\")\n    return (\n        src_profile_stage.alias(\"base\")\n        .join(audit_cols.alias(\"audit\"), on=\"profile_key\", how=\"left\")\n        .select(\"profile_key\", F.col(\"audit.reviewed_on\").alias(\"reviewed_on\"))\n    )\n",
       "new_script": "from pyspark.sql import functions as F\n\n\ndef transform(src_profile_stage, src_profile_history):\n    audit_cols = src_profile_history.select(\"ProfileIdentifier\")\n    return (\n        src_profile_stage.alias(\"base\")\n        .join(audit_cols.alias(\"audit\"), on=\"ProfileIdentifier\", how=\"left\")\n        .select(\"ProfileIdentifier\")\n    )\n",
+      "sql_fixture": {
+        "issue_key_column": "ProfileIdentifier",
+        "issue_key_values": [
+          "TPROFILEAUDIT_001"
+        ],
+        "target_table_schema": [
+          {
+            "name": "ProfileIdentifier",
+            "type": "TEXT"
+          }
+        ],
+        "target_rows": [
+          {
+            "ProfileIdentifier": "TPROFILEAUDIT_001"
+          },
+          {
+            "ProfileIdentifier": "TPROFILEAUDIT_002"
+          }
+        ],
+        "support_tables": [
+          {
+            "name": "src_profile_stage",
+            "schema": [
+              {
+                "name": "ProfileIdentifier",
+                "type": "TEXT"
+              }
+            ],
+            "rows": [
+              {
+                "ProfileIdentifier": "TPROFILEAUDIT_001"
+              },
+              {
+                "ProfileIdentifier": "TPROFILEAUDIT_002"
+              }
+            ]
+          },
+          {
+            "name": "src_profile_history",
+            "schema": [
+              {
+                "name": "ProfileIdentifier",
+                "type": "TEXT"
+              },
+              {
+                "name": "ProfileGovernanceReviewTs",
+                "type": "TEXT"
+              }
+            ],
+            "rows": [
+              {
+                "ProfileIdentifier": "TPROFILEAUDIT_001",
+                "ProfileGovernanceReviewTs": "2026-04-03T09:15:00"
+              },
+              {
+                "ProfileIdentifier": "TPROFILEAUDIT_002",
+                "ProfileGovernanceReviewTs": "2026-04-04T09:15:00"
+              }
+            ]
+          }
+        ],
+        "primary_query_template": "SELECT * FROM \"tprofileaudit_new\" WHERE \"ProfileIdentifier\" IN (:issue_keys) ORDER BY \"ProfileIdentifier\"",
+        "expected_findings": [
+          "Current target table carries the identifier but not the mapped output column ProfileGovernanceReviewTs."
+        ],
+        "diagnostic_hints": {
+          "focus_column": "ProfileGovernanceReviewTs",
+          "support_lookup_table": "src_profile_history",
+          "support_focus_column": "ProfileGovernanceReviewTs"
+        }
+      },
       "old_transformation_script_path": "fixtures/scripts/old/tty/tprofileaudit.py",
       "new_transformation_script_path": "fixtures/scripts/new/tty/tprofileaudit.py"
     }
