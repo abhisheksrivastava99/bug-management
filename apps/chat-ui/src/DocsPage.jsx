@@ -577,6 +577,17 @@ export default function DocsPage() {
                     <article className="docs-panel">
                         <p className="section-kicker">Architecture</p>
                         <h3>Monitoring architecture and data path</h3>
+                        <figure className="docs-figure">
+                            <img
+                                src="/docs-images/monitoring-architecture-diagram.png"
+                                alt="Architecture diagram for the Azure pipeline monitoring POC"
+                            />
+                            <figcaption>
+                                Monitoring architecture showing the Azure telemetry path, seeded observability fixtures,
+                                metadata enrichment, backend observability service, API surface, React dashboard, and
+                                AI-assisted summary/query flows.
+                            </figcaption>
+                        </figure>
                         <ol className="docs-flow-list">
                             {monitoringArchitectureSteps.map((item) => (
                                 <li key={item}>{item}</li>
@@ -615,6 +626,16 @@ export default function DocsPage() {
                     <article className="docs-panel">
                         <p className="section-kicker">Data</p>
                         <h3>Data sources and seed strategy</h3>
+                        <figure className="docs-figure">
+                            <img
+                                src="/docs-images/monitoring-mock-data-snapshot.png"
+                                alt="Mock data snapshot for the monitoring observability fixtures"
+                            />
+                            <figcaption>
+                                Mock observability data snapshot showing how pipeline metadata, pipeline runs,
+                                activity runs, and trigger runs roll up into the dashboard interpretation layer.
+                            </figcaption>
+                        </figure>
                         <div className="docs-card-grid">
                             {monitoringDataSources.map((item) => (
                                 <div key={item.title} className="docs-info-card">
