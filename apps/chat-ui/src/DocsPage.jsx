@@ -308,6 +308,286 @@ const monitoringAiCards = [
     },
 ];
 
+const azureGuideOverviewCards = [
+    {
+        title: "Private-Only Landing Zone",
+        details: "Keep the app tier, observability path, and data integrations in the same subscription as the existing ADLS Gen2 account while exposing access only through private network paths such as VPN or ExpressRoute.",
+    },
+    {
+        title: "Unified Backend Role",
+        details: "Deploy the React UI and the unified FastAPI backend as separate private app components, with the backend remaining the only layer that talks to Azure data services, Log Analytics, and model endpoints.",
+    },
+    {
+        title: "ADLS2 Access Pattern",
+        details: "Treat ADLS Gen2 as the source of truth for table metadata and business tables, but read it through a governed SQL or query layer instead of direct browser or raw storage access.",
+    },
+    {
+        title: "Observability Flow",
+        details: "Send Azure Data Factory or Synapse pipeline diagnostics into Log Analytics, then let the backend normalize that telemetry and join it with cadence, owner, and criticality metadata.",
+    },
+    {
+        title: "Security Model",
+        details: "Disable public network access where supported, use private endpoints plus private DNS, and grant managed identities only the reader, pull, and secret-access roles they need.",
+    },
+];
+
+const azureResourceInventoryRows = [
+    {
+        resource_group: "rg-bugmgmt-net-prod",
+        resource: "Virtual network",
+        proposed_name: "vnet-bugmgmt-prod",
+        purpose: "Private application network that hosts the app gateway, Container Apps environment, private endpoints, and supporting DNS subnets.",
+    },
+    {
+        resource_group: "rg-bugmgmt-net-prod",
+        resource: "Application Gateway WAF v2",
+        proposed_name: "agw-bugmgmt-prod",
+        purpose: "Private-only frontend entry point that publishes the docs and app UI without opening a public endpoint.",
+    },
+    {
+        resource_group: "rg-bugmgmt-app-prod",
+        resource: "Container Apps environment",
+        proposed_name: "acae-bugmgmt-prod",
+        purpose: "Internal-only environment for the private UI and API workloads.",
+    },
+    {
+        resource_group: "rg-bugmgmt-app-prod",
+        resource: "Container App - UI",
+        proposed_name: "ca-bugmgmt-ui-prod",
+        purpose: "Hosts the React docs and monitoring interface as the private web tier.",
+    },
+    {
+        resource_group: "rg-bugmgmt-app-prod",
+        resource: "Container App - API",
+        proposed_name: "ca-bugmgmt-api-prod",
+        purpose: "Runs the unified FastAPI backend that serves investigation and observability endpoints.",
+    },
+    {
+        resource_group: "rg-bugmgmt-platform-prod",
+        resource: "Azure Container Registry Premium",
+        proposed_name: "acrbugmgmtprod",
+        purpose: "Private image registry used by the Container Apps workloads.",
+    },
+    {
+        resource_group: "rg-bugmgmt-platform-prod",
+        resource: "Key Vault",
+        proposed_name: "kv-bugmgmt-prod",
+        purpose: "Stores application secrets, certificates, and future shared configuration values.",
+    },
+    {
+        resource_group: "rg-bugmgmt-platform-prod",
+        resource: "Azure OpenAI",
+        proposed_name: "aoai-bugmgmt-prod",
+        purpose: "Private model endpoint for the structured AI calls already used by the investigation and observability layers.",
+    },
+    {
+        resource_group: "rg-bugmgmt-data-prod",
+        resource: "Existing ADLS Gen2 account",
+        proposed_name: "keep current",
+        purpose: "Remains the source of truth for metadata tables and business data inside the same subscription.",
+    },
+    {
+        resource_group: "rg-bugmgmt-data-prod",
+        resource: "Synapse workspace",
+        proposed_name: "syn-bugmgmt-prod",
+        purpose: "Provides the governed query layer that reads ADLS2 data for metadata and SQL-style diagnostics.",
+    },
+    {
+        resource_group: "rg-bugmgmt-data-prod",
+        resource: "Data Factory",
+        proposed_name: "adf-bugmgmt-prod",
+        purpose: "Owns scheduled pipeline execution and emits telemetry into the monitoring path.",
+    },
+    {
+        resource_group: "rg-bugmgmt-ops-prod",
+        resource: "Log Analytics workspace",
+        proposed_name: "law-bugmgmt-prod",
+        purpose: "Central workspace for ADF, Synapse, app, and platform diagnostics queried by the observability backend.",
+    },
+    {
+        resource_group: "rg-bugmgmt-ops-prod",
+        resource: "Application Insights",
+        proposed_name: "appi-bugmgmt-prod",
+        purpose: "Workspace-based app telemetry for the private UI and API workloads.",
+    },
+    {
+        resource_group: "rg-bugmgmt-ops-prod",
+        resource: "Azure Monitor Private Link Scope",
+        proposed_name: "ampls-bugmgmt-prod",
+        purpose: "Keeps Azure Monitor and Log Analytics query traffic on private network paths.",
+    },
+];
+
+const azureNetworkLayoutRows = [
+    {
+        subnet: "snet-appgw",
+        cidr: "10.42.0.0/24",
+        purpose: "Dedicated subnet for the private Application Gateway WAF deployment.",
+        notes: "Reserve this subnet for the gateway only.",
+    },
+    {
+        subnet: "snet-aca-env",
+        cidr: "10.42.1.0/24",
+        purpose: "Dedicated subnet for the internal Azure Container Apps environment.",
+        notes: "Use this for the private UI and API app tier.",
+    },
+    {
+        subnet: "snet-private-endpoints",
+        cidr: "10.42.2.0/24",
+        purpose: "Consolidated subnet for private endpoint NICs.",
+        notes: "Keeps data-plane private links isolated from the app tier.",
+    },
+    {
+        subnet: "AzureBastionSubnet",
+        cidr: "10.42.3.0/26",
+        purpose: "Optional admin subnet for Bastion-based access.",
+        notes: "Include only if private VM administration is needed.",
+    },
+    {
+        subnet: "GatewaySubnet",
+        cidr: "10.42.3.64/27",
+        purpose: "Reserved subnet for VPN or ExpressRoute gateway connectivity.",
+        notes: "Protects room for enterprise private access later.",
+    },
+    {
+        subnet: "snet-dns-inbound",
+        cidr: "10.42.3.96/28",
+        purpose: "Inbound Azure DNS Private Resolver endpoint.",
+        notes: "Lets on-prem or hub DNS reach the private Azure zones.",
+    },
+    {
+        subnet: "snet-dns-outbound",
+        cidr: "10.42.3.112/28",
+        purpose: "Outbound Azure DNS Private Resolver endpoint.",
+        notes: "Supports forwarding private name resolution to enterprise DNS when required.",
+    },
+];
+
+const azurePrivateAccessRows = [
+    {
+        target: "ADLS Gen2",
+        private_endpoints: "pe-adls-blob-prod, pe-adls-dfs-prod",
+        dns_zones: "privatelink.blob.core.windows.net, privatelink.dfs.core.windows.net",
+        notes: "Both blob and dfs endpoints are needed for the storage account.",
+    },
+    {
+        target: "Key Vault",
+        private_endpoints: "pe-kv-prod",
+        dns_zones: "privatelink.vaultcore.azure.net",
+        notes: "Keep public network access disabled.",
+    },
+    {
+        target: "Azure Container Registry",
+        private_endpoints: "pe-acr-prod",
+        dns_zones: "privatelink.azurecr.io",
+        notes: "Premium SKU is required for Private Link.",
+    },
+    {
+        target: "Azure OpenAI",
+        private_endpoints: "pe-aoai-prod",
+        dns_zones: "privatelink.openai.azure.com",
+        notes: "Use Entra auth and keep model access server-side.",
+    },
+    {
+        target: "Synapse workspace",
+        private_endpoints: "pe-syn-sql-prod, pe-syn-sqlod-prod, pe-syn-dev-prod",
+        dns_zones: "privatelink.sql.azuresynapse.net, privatelink.dev.azuresynapse.net",
+        notes: "Add the workspace web endpoint if Studio access is required.",
+    },
+    {
+        target: "Azure Monitor and Log Analytics",
+        private_endpoints: "pe-ampls-prod",
+        dns_zones: "privatelink.monitor.azure.com, privatelink.oms.opinsights.azure.com, privatelink.ods.opinsights.azure.com, privatelink.agentsvc.azure-automation.net",
+        notes: "Route monitoring queries and ingestion through AMPLS for private access.",
+    },
+    {
+        target: "ADF control plane",
+        private_endpoints: "pe-adf-api-prod, pe-adf-portal-prod",
+        dns_zones: "privatelink.datafactory.azure.net, privatelink.adf.azure.com",
+        notes: "Add if private control-plane access is required for the factory experience.",
+    },
+];
+
+const azureAccessModelRows = [
+    {
+        principal: "grp-bugmgmt-platform-admins",
+        scope: "App, data, network, and ops resource groups",
+        roles: "Contributor",
+        notes: "Primary engineering ownership group for the landing zone.",
+    },
+    {
+        principal: "grp-bugmgmt-security-admins",
+        scope: "Same production scopes",
+        roles: "User Access Administrator",
+        notes: "Limit this to a very small admin set.",
+    },
+    {
+        principal: "grp-bugmgmt-network-ops",
+        scope: "rg-bugmgmt-net-prod",
+        roles: "Network Contributor, Private DNS Zone Contributor",
+        notes: "Owns private networking, DNS, and gateway changes.",
+    },
+    {
+        principal: "grp-bugmgmt-data-admins",
+        scope: "ADLS Gen2 account",
+        roles: "Storage Blob Data Owner",
+        notes: "Owns path ACLs and storage data governance.",
+    },
+    {
+        principal: "uami-bugmgmt-api-prod",
+        scope: "ACR, Key Vault, Log Analytics, Azure OpenAI",
+        roles: "AcrPull, Key Vault Secrets User, Log Analytics Data Reader, Cognitive Services OpenAI User",
+        notes: "Managed identity used by the unified FastAPI backend.",
+    },
+    {
+        principal: "uami-bugmgmt-agw-prod",
+        scope: "Key Vault",
+        roles: "Key Vault Secrets User",
+        notes: "Lets the private gateway read TLS material from Key Vault.",
+    },
+    {
+        principal: "Synapse workspace managed identity",
+        scope: "ADLS Gen2 paths used for metadata and business tables",
+        roles: "Storage Blob Data Reader plus path ACLs",
+        notes: "Use this identity for governed read access into lake data.",
+    },
+    {
+        principal: "Data Factory managed identity",
+        scope: "ADLS Gen2 paths touched by pipeline execution",
+        roles: "Storage Blob Data Reader or Storage Blob Data Contributor",
+        notes: "Grant write only where a pipeline actually produces data.",
+    },
+    {
+        principal: "grp-bugmgmt-observability-readers",
+        scope: "Log Analytics workspace",
+        roles: "Log Analytics Reader",
+        notes: "Optional human read-only access for support and operations teams.",
+    },
+];
+
+const azureImplementationNotes = [
+    {
+        title: "Proposed Defaults",
+        details: "The resource names, CIDR ranges, and subnet splits below are recommended POC defaults. They should be aligned to the enterprise naming standard and IPAM plan before production rollout.",
+    },
+    {
+        title: "ADLS2 Query Layer",
+        details: "The app tier should not read lake paths directly from the browser. The preferred production pattern is backend access through Synapse serverless SQL or another governed query layer over ADLS2.",
+    },
+    {
+        title: "Backend Entry Point",
+        details: "The current repo is best suited to deploy the unified backend entry point rather than four separately exposed services, so the private app surface stays smaller and easier to secure.",
+    },
+    {
+        title: "Monitoring Alignment",
+        details: "ADF or Synapse diagnostics, application logs, and future gateway telemetry should land in the same Log Analytics workspace so the observability API can join platform signals with app-owned metadata.",
+    },
+    {
+        title: "Container Apps Caveat",
+        details: "Internal Azure Container Apps works well for the POC, but if the enterprise policy forbids any managed public egress artifacts, the app tier should be re-evaluated against ASE v3 or private AKS.",
+    },
+];
+
 function DocsAccordion({ badge, copy, defaultOpen = false, title, children }) {
     return (
         <details className="panel docs-accordion" open={defaultOpen}>
@@ -651,6 +931,150 @@ export default function DocsPage() {
                         <h3>AI assistance in monitoring</h3>
                         <div className="docs-card-grid">
                             {monitoringAiCards.map((item) => (
+                                <div key={item.title} className="docs-info-card">
+                                    <h4>{item.title}</h4>
+                                    <p>{item.details}</p>
+                                </div>
+                            ))}
+                        </div>
+                    </article>
+                </DocsAccordion>
+
+                <DocsAccordion
+                    title="Azure Guide"
+                    badge="Private deployment blueprint"
+                    copy="Concrete Azure resource, networking, private endpoint, and RBAC guidance for deploying this POC privately in the same subscription as ADLS Gen2."
+                >
+                    <article className="docs-panel">
+                        <p className="section-kicker">Overview</p>
+                        <h3>Private Azure landing zone for this POC</h3>
+                        <p className="hero-copy docs-copy">
+                            This guide turns the monitoring architecture into a concrete Azure deployment blueprint.
+                            It assumes the application, observability services, and existing ADLS Gen2 data live in the
+                            same subscription and must stay private rather than internet-facing.
+                        </p>
+                        <div className="docs-card-grid">
+                            {azureGuideOverviewCards.map((item) => (
+                                <div key={item.title} className="docs-info-card">
+                                    <h4>{item.title}</h4>
+                                    <p>{item.details}</p>
+                                </div>
+                            ))}
+                        </div>
+                    </article>
+
+                    <article className="docs-panel">
+                        <p className="section-kicker">Resource Inventory</p>
+                        <h3>Recommended Azure resources</h3>
+                        <div className="table-wrap docs-table-wrap">
+                            <table className="mapping-table">
+                                <thead>
+                                    <tr>
+                                        <th>Resource Group</th>
+                                        <th>Resource</th>
+                                        <th>Proposed Name</th>
+                                        <th>Purpose</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {azureResourceInventoryRows.map((row) => (
+                                        <tr key={`${row.resource_group}-${row.resource}-${row.proposed_name}`}>
+                                            <td>{row.resource_group}</td>
+                                            <td>{row.resource}</td>
+                                            <td>{row.proposed_name}</td>
+                                            <td>{row.purpose}</td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    </article>
+
+                    <article className="docs-panel">
+                        <p className="section-kicker">Network Layout</p>
+                        <h3>Proposed VNet and subnet plan</h3>
+                        <p className="hero-copy docs-copy">
+                            The CIDRs below are proposed defaults for the POC, not hard Azure requirements. They give
+                            the implementation team a clean starting point that can be adapted to enterprise IPAM.
+                        </p>
+                        <div className="table-wrap docs-table-wrap">
+                            <table className="mapping-table">
+                                <thead>
+                                    <tr>
+                                        <th>Subnet</th>
+                                        <th>CIDR</th>
+                                        <th>Purpose</th>
+                                        <th>Notes</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {azureNetworkLayoutRows.map((row) => (
+                                        <tr key={`${row.subnet}-${row.cidr}`}>
+                                            <td>{row.subnet}</td>
+                                            <td>{row.cidr}</td>
+                                            <td>{row.purpose}</td>
+                                            <td>{row.notes}</td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    </article>
+
+                    <article className="docs-panel">
+                        <p className="section-kicker">Private Access</p>
+                        <h3>Private endpoints and DNS zones</h3>
+                        <div className="table-wrap docs-table-wrap">
+                            <table className="mapping-table">
+                                <thead>
+                                    <tr>
+                                        <th>Target</th>
+                                        <th>Private Endpoint(s)</th>
+                                        <th>Private DNS Zone(s)</th>
+                                        <th>Notes</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {azurePrivateAccessRows.map((row) => (
+                                        <tr key={`${row.target}-${row.private_endpoints}`}>
+                                            <td>{row.target}</td>
+                                            <td>{row.private_endpoints}</td>
+                                            <td>{row.dns_zones}</td>
+                                            <td>{row.notes}</td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    </article>
+
+                    <article className="docs-panel">
+                        <p className="section-kicker">Access Model</p>
+                        <h3>RBAC and implementation notes</h3>
+                        <div className="table-wrap docs-table-wrap">
+                            <table className="mapping-table">
+                                <thead>
+                                    <tr>
+                                        <th>Principal</th>
+                                        <th>Scope</th>
+                                        <th>Role(s)</th>
+                                        <th>Notes</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {azureAccessModelRows.map((row) => (
+                                        <tr key={`${row.principal}-${row.scope}`}>
+                                            <td>{row.principal}</td>
+                                            <td>{row.scope}</td>
+                                            <td>{row.roles}</td>
+                                            <td>{row.notes}</td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                        <div className="docs-card-grid">
+                            {azureImplementationNotes.map((item) => (
                                 <div key={item.title} className="docs-info-card">
                                     <h4>{item.title}</h4>
                                     <p>{item.details}</p>
