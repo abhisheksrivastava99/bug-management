@@ -953,6 +953,18 @@ export default function DocsPage() {
                             It assumes the application, observability services, and existing ADLS Gen2 data live in the
                             same subscription and must stay private rather than internet-facing.
                         </p>
+                        <figure className="docs-figure">
+                            <img
+                                src="/docs-images/azure-private-deployment-architecture.png"
+                                alt="Azure private deployment architecture for the bug management and monitoring POC"
+                            />
+                            <figcaption>
+                                Private Azure deployment architecture showing enterprise access through a private
+                                Application Gateway, the private app tier, backend integration with Synapse, Data
+                                Factory, Log Analytics, Azure OpenAI, Key Vault, Azure Container Registry, and private
+                                endpoint access to ADLS Gen2 and platform services.
+                            </figcaption>
+                        </figure>
                         <div className="docs-card-grid">
                             {azureGuideOverviewCards.map((item) => (
                                 <div key={item.title} className="docs-info-card">
@@ -997,6 +1009,18 @@ export default function DocsPage() {
                             The CIDRs below are proposed defaults for the POC, not hard Azure requirements. They give
                             the implementation team a clean starting point that can be adapted to enterprise IPAM.
                         </p>
+                        <figure className="docs-figure">
+                            <img
+                                src="/docs-images/azure-vnet-subnet-layout.png"
+                                alt="VNet and subnet layout for the private Azure deployment"
+                            />
+                            <figcaption>
+                                Proposed VNet and subnet layout for the private deployment, showing dedicated address
+                                space for the Application Gateway, Container Apps environment, private endpoints,
+                                Bastion, VPN or ExpressRoute gateway, and inbound and outbound DNS Private Resolver
+                                endpoints.
+                            </figcaption>
+                        </figure>
                         <div className="table-wrap docs-table-wrap">
                             <table className="mapping-table">
                                 <thead>
