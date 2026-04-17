@@ -980,6 +980,62 @@ h1 {
   gap: 24px;
 }
 
+.docs-accordion-stack {
+  display: grid;
+  gap: 24px;
+}
+
+.docs-accordion {
+  overflow: hidden;
+}
+
+.docs-accordion summary {
+  cursor: pointer;
+  list-style: none;
+  display: grid;
+  gap: 10px;
+}
+
+.docs-accordion summary::-webkit-details-marker {
+  display: none;
+}
+
+.docs-accordion[open] summary {
+  margin-bottom: 24px;
+}
+
+.docs-accordion-title {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 14px;
+}
+
+.docs-accordion-title h2 {
+  margin: 0;
+}
+
+.docs-accordion-copy {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.7;
+}
+
+.docs-section-stack {
+  display: grid;
+  gap: 24px;
+}
+
+.docs-section-stack > .docs-panel {
+  padding-top: 24px;
+  border-top: 1px solid var(--line);
+}
+
+.docs-section-stack > .docs-panel:first-child {
+  padding-top: 0;
+  border-top: 0;
+}
+
 .docs-panel {
   display: grid;
   gap: 18px;
@@ -1132,6 +1188,10 @@ h1 {
   .drawer-header {
     grid-template-columns: 1fr;
     display: grid;
+  }
+
+  .docs-accordion-title {
+    flex-direction: column;
   }
 
   .mapping-table {
