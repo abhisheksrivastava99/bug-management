@@ -1,0 +1,192 @@
+[
+  {
+    "pipeline_name": "SalesDailyLoad",
+    "pipeline_id": "pipe-d-001",
+    "cadence": "daily",
+    "owner": "Retail Data Ops",
+    "criticality": "high",
+    "business_domain": "Sales",
+    "schedule_timezone": "UTC",
+    "schedule_time": "01:15",
+    "scenario_profile": "healthy_stable",
+    "trigger_name": "sales-daily-load-schedule",
+    "resource_id": "/subscriptions/mock-sub/resourceGroups/mock-rg/providers/Microsoft.DataFactory/factories/demo-factory/pipelines/SalesDailyLoad",
+    "day_of_week": null,
+    "day_of_month": null,
+    "duration_range_minutes": [
+      8,
+      14
+    ]
+  },
+  {
+    "pipeline_name": "CustomerDailySnapshot",
+    "pipeline_id": "pipe-d-002",
+    "cadence": "daily",
+    "owner": "Customer Insights",
+    "criticality": "high",
+    "business_domain": "Customer",
+    "schedule_timezone": "UTC",
+    "schedule_time": "02:10",
+    "scenario_profile": "duration_regression",
+    "trigger_name": "customer-daily-snapshot-schedule",
+    "resource_id": "/subscriptions/mock-sub/resourceGroups/mock-rg/providers/Microsoft.DataFactory/factories/demo-factory/pipelines/CustomerDailySnapshot",
+    "day_of_week": null,
+    "day_of_month": null,
+    "duration_range_minutes": [
+      10,
+      18
+    ]
+  },
+  {
+    "pipeline_name": "FinanceDailyReconciliation",
+    "pipeline_id": "pipe-d-003",
+    "cadence": "daily",
+    "owner": "Finance Platform",
+    "criticality": "medium",
+    "business_domain": "Finance",
+    "schedule_timezone": "UTC",
+    "schedule_time": "03:05",
+    "scenario_profile": "intermittent_failures",
+    "trigger_name": "finance-daily-reconciliation-schedule",
+    "resource_id": "/subscriptions/mock-sub/resourceGroups/mock-rg/providers/Microsoft.DataFactory/factories/demo-factory/pipelines/FinanceDailyReconciliation",
+    "day_of_week": null,
+    "day_of_month": null,
+    "duration_range_minutes": [
+      12,
+      20
+    ]
+  },
+  {
+    "pipeline_name": "InventoryDailySync",
+    "pipeline_id": "pipe-d-004",
+    "cadence": "daily",
+    "owner": "Supply Chain Data",
+    "criticality": "medium",
+    "business_domain": "Inventory",
+    "schedule_timezone": "UTC",
+    "schedule_time": "04:00",
+    "scenario_profile": "recovered_after_failure",
+    "trigger_name": "inventory-daily-sync-schedule",
+    "resource_id": "/subscriptions/mock-sub/resourceGroups/mock-rg/providers/Microsoft.DataFactory/factories/demo-factory/pipelines/InventoryDailySync",
+    "day_of_week": null,
+    "day_of_month": null,
+    "duration_range_minutes": [
+      9,
+      16
+    ]
+  },
+  {
+    "pipeline_name": "OrdersWeeklyBackfill",
+    "pipeline_id": "pipe-w-001",
+    "cadence": "weekly",
+    "owner": "Retail Data Ops",
+    "criticality": "medium",
+    "business_domain": "Orders",
+    "schedule_timezone": "UTC",
+    "schedule_time": "05:30",
+    "scenario_profile": "healthy_stable",
+    "trigger_name": "orders-weekly-backfill-schedule",
+    "resource_id": "/subscriptions/mock-sub/resourceGroups/mock-rg/providers/Microsoft.DataFactory/factories/demo-factory/pipelines/OrdersWeeklyBackfill",
+    "day_of_week": "monday",
+    "day_of_month": null,
+    "duration_range_minutes": [
+      35,
+      55
+    ]
+  },
+  {
+    "pipeline_name": "BillingWeeklyAudit",
+    "pipeline_id": "pipe-w-002",
+    "cadence": "weekly",
+    "owner": "Finance Platform",
+    "criticality": "high",
+    "business_domain": "Billing",
+    "schedule_timezone": "UTC",
+    "schedule_time": "06:15",
+    "scenario_profile": "duration_regression",
+    "trigger_name": "billing-weekly-audit-schedule",
+    "resource_id": "/subscriptions/mock-sub/resourceGroups/mock-rg/providers/Microsoft.DataFactory/factories/demo-factory/pipelines/BillingWeeklyAudit",
+    "day_of_week": "wednesday",
+    "day_of_month": null,
+    "duration_range_minutes": [
+      28,
+      65
+    ]
+  },
+  {
+    "pipeline_name": "PartnerWeeklyRefresh",
+    "pipeline_id": "pipe-w-003",
+    "cadence": "weekly",
+    "owner": "Partner Integrations",
+    "criticality": "high",
+    "business_domain": "Partners",
+    "schedule_timezone": "UTC",
+    "schedule_time": "02:45",
+    "scenario_profile": "repeated_failures",
+    "trigger_name": "partner-weekly-refresh-schedule",
+    "resource_id": "/subscriptions/mock-sub/resourceGroups/mock-rg/providers/Microsoft.DataFactory/factories/demo-factory/pipelines/PartnerWeeklyRefresh",
+    "day_of_week": "thursday",
+    "day_of_month": null,
+    "duration_range_minutes": [
+      40,
+      90
+    ]
+  },
+  {
+    "pipeline_name": "RiskWeeklyAggregation",
+    "pipeline_id": "pipe-w-004",
+    "cadence": "weekly",
+    "owner": "Risk Analytics",
+    "criticality": "high",
+    "business_domain": "Risk",
+    "schedule_timezone": "UTC",
+    "schedule_time": "07:10",
+    "scenario_profile": "missed_schedule",
+    "trigger_name": "risk-weekly-aggregation-schedule",
+    "resource_id": "/subscriptions/mock-sub/resourceGroups/mock-rg/providers/Microsoft.DataFactory/factories/demo-factory/pipelines/RiskWeeklyAggregation",
+    "day_of_week": "friday",
+    "day_of_month": null,
+    "duration_range_minutes": [
+      25,
+      50
+    ]
+  },
+  {
+    "pipeline_name": "RevenueMonthlyClose",
+    "pipeline_id": "pipe-m-001",
+    "cadence": "monthly",
+    "owner": "Finance Close Team",
+    "criticality": "high",
+    "business_domain": "Revenue",
+    "schedule_timezone": "UTC",
+    "schedule_time": "01:00",
+    "scenario_profile": "healthy_stable",
+    "trigger_name": "revenue-monthly-close-schedule",
+    "resource_id": "/subscriptions/mock-sub/resourceGroups/mock-rg/providers/Microsoft.DataFactory/factories/demo-factory/pipelines/RevenueMonthlyClose",
+    "day_of_week": null,
+    "day_of_month": 3,
+    "duration_range_minutes": [
+      75,
+      120
+    ]
+  },
+  {
+    "pipeline_name": "ComplianceMonthlyRollup",
+    "pipeline_id": "pipe-m-002",
+    "cadence": "monthly",
+    "owner": "Compliance Reporting",
+    "criticality": "high",
+    "business_domain": "Compliance",
+    "schedule_timezone": "UTC",
+    "schedule_time": "09:30",
+    "scenario_profile": "repeated_failures",
+    "trigger_name": "compliance-monthly-rollup-schedule",
+    "resource_id": "/subscriptions/mock-sub/resourceGroups/mock-rg/providers/Microsoft.DataFactory/factories/demo-factory/pipelines/ComplianceMonthlyRollup",
+    "day_of_week": null,
+    "day_of_month": 20,
+    "duration_range_minutes": [
+      90,
+      180
+    ]
+  }
+]

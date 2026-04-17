@@ -24,6 +24,7 @@ from bug_management_shared.models import (
     System2Request,
     System4Request,
 )
+from bug_management_shared.observability_router import router as observability_router
 from bug_management_shared.system4 import analyze_system4
 from services.system1.app.main import parse_and_classify
 from services.system2.app.main import ready as system2_ready
@@ -44,6 +45,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+app.include_router(observability_router)
 
 
 @app.on_event("startup")

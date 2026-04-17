@@ -2,6 +2,7 @@ import json
 import os
 import sqlite3
 import sys
+from datetime import datetime
 from pathlib import Path
 
 import pandas as pd
@@ -13,6 +14,10 @@ if str(SHARED_SRC) not in sys.path:
     sys.path.insert(0, str(SHARED_SRC))
 
 from bug_management_shared.fixture_catalog import build_scenario_catalog
+from bug_management_shared.observability_fixture_builder import (
+    build_observability_fixture_bundle,
+    write_observability_fixture_bundle,
+)
 
 
 EXCEL_DIR = REPO_ROOT / "fixtures" / "excel"
@@ -75,13 +80,17 @@ def main() -> None:
     pd.DataFrame(metadata_rows).to_excel(EXCEL_DIR / "table_metadata.xlsx", index=False)
     pd.DataFrame(mapping_rows)[MAPPING_COLUMNS].to_excel(EXCEL_DIR / "column_mapping.xlsx", index=False)
     sqlite_path = _write_sqlite_fixture(catalog)
+    observability_now = _parse_optional_datetime(os.getenv("BM_OBSERVABILITY_NOW"))
+    observability_bundle = build_observability_fixture_bundle(seed=seed, now_utc=observability_now)
+    observability_paths = write_observability_fixture_bundle(observability_bundle)
     (CATALOG_DIR / "scenario_catalog.json").write_text(
         json.dumps(catalog, indent=2),
         encoding="utf-8",
     )
     print(
         f"Wrote {len(metadata_rows)} metadata rows, {len(mapping_rows)} mapping rows, "
-        f"{len(catalog['scenarios'])} scenarios, and SQLite fixtures at {sqlite_path} using seed={seed}."
+        f"{len(catalog['scenarios'])} scenarios, SQLite fixtures at {sqlite_path}, and "
+        f"observability fixtures at {observability_paths['manifest']} using seed={seed}."
     )
 
 
@@ -128,6 +137,13 @@ def _insert_rows(connection: sqlite3.Connection, table_name: str, rows: list[dic
         f'INSERT INTO "{table_name}" ({column_sql}) VALUES ({placeholders})',
         values,
     )
+
+
+def _parse_optional_datetime(raw_value):
+    if not raw_value:
+        return None
+    normalized = raw_value.replace("Z", "+00:00")
+    return datetime.fromisoformat(normalized)
 
 
 if __name__ == "__main__":

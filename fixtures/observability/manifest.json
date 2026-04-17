@@ -1,0 +1,13 @@
+{
+  "generated_at": "2026-04-17T16:31:35Z",
+  "seed": 11,
+  "pipeline_count": 10,
+  "trigger_rows": 301,
+  "pipeline_rows": 301,
+  "activity_rows": 1231,
+  "sample_kql_queries": [
+    "ADFPipelineRun\n| where TimeGenerated >= ago(30d)\n| where Status in (\"Succeeded\", \"Failed\", \"Cancelled\")\n| summarize SuccessRate = round(100.0 * countif(Status == \"Succeeded\") / count(), 1), CompletedRuns = count() by PipelineName\n| order by SuccessRate asc",
+    "// Schedule type is joined from app metadata in this POC.\nADFPipelineRun\n| where TimeGenerated >= ago(30d)\n| summarize RunCount = count() by PipelineName\n| order by RunCount desc",
+    "ADFPipelineRun\n| where TimeGenerated >= ago(30d)\n| where Status in (\"Succeeded\", \"Failed\", \"Cancelled\")\n| summarize AvgDurationMinutes = avg(DurationInMs / 60000.0) by bin(Start, 1d), PipelineName\n| order by Start asc"
+  ]
+}

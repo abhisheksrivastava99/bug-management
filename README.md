@@ -7,6 +7,7 @@ Multi-service Jira bug investigation chatbot POC with:
 - `system3`: old/new script analysis and incident synthesis
 - `orchestrator`: chat-facing API that runs the full flow
 - `apps/chat-ui`: minimal React/Vite frontend
+  - now includes both the bug investigation view and an Azure observability dashboard at `/#/observability`
 
 ## Quick Start
 
@@ -15,6 +16,7 @@ Multi-service Jira bug investigation chatbot POC with:
    - `OPENAI_API_KEY="..."`
 3. Generate fixture Excel files:
    - `python3 scripts/generate_excel_fixtures.py`
+   - observability-only mock LAW fixtures can also be regenerated with `python3 scripts/generate_observability_fixtures.py`
 4. Start services:
    - `uvicorn app.main:app --reload --port 8001` from `services/system1`
    - `uvicorn app.main:app --reload --port 8002` from `services/system2`

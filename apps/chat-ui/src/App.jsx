@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { HashRouter, Link, Navigate, Route, Routes } from "react-router-dom";
+import ObservabilityPage from "./ObservabilityPage";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000";
 
@@ -570,6 +571,9 @@ function InvestigationPage({
                         </p>
                     </div>
                     <div className="hero-side-actions">
+                        <Link to="/observability" className="ghost nav-button">
+                            Monitoring
+                        </Link>
                         <Link to="/docs" className="ghost nav-button">
                             Open Docs
                         </Link>
@@ -846,6 +850,9 @@ function DocsPage() {
                     </div>
                     <Link to="/" className="ghost nav-button">
                         Back To Investigation
+                    </Link>
+                    <Link to="/observability" className="ghost nav-button">
+                        Open Monitoring
                     </Link>
                 </div>
             </section>
@@ -1137,6 +1144,7 @@ export default function App() {
                             />
                         }
                     />
+                    <Route path="/observability" element={<ObservabilityPage apiBaseUrl={API_BASE_URL} />} />
                     <Route path="/docs" element={<DocsPage />} />
                     <Route path="*" element={<Navigate to="/" replace />} />
                 </Routes>

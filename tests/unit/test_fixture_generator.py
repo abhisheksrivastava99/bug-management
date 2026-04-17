@@ -61,6 +61,22 @@ class FixtureGeneratorTests(unittest.TestCase):
             cursor = connection.execute('SELECT COUNT(*) FROM "tdupshipment_new"')
             self.assertGreater(cursor.fetchone()[0], 0)
 
+        observability_root = ROOT / "fixtures" / "observability"
+        metadata = json.loads((observability_root / "pipeline_metadata.json").read_text(encoding="utf-8"))
+        trigger_rows = json.loads((observability_root / "ADFTriggerRun.json").read_text(encoding="utf-8"))
+        pipeline_rows = json.loads((observability_root / "ADFPipelineRun.json").read_text(encoding="utf-8"))
+        activity_rows = json.loads((observability_root / "ADFActivityRun.json").read_text(encoding="utf-8"))
+        self.assertEqual(len(metadata), 10)
+        self.assertEqual(sum(1 for row in metadata if row["cadence"] == "daily"), 4)
+        self.assertEqual(sum(1 for row in metadata if row["cadence"] == "weekly"), 4)
+        self.assertEqual(sum(1 for row in metadata if row["cadence"] == "monthly"), 2)
+        self.assertEqual(len(trigger_rows), len(pipeline_rows))
+        trigger_ids = {row["TriggerRunId"] for row in trigger_rows}
+        pipeline_run_ids = {row["RunId"] for row in pipeline_rows}
+        self.assertTrue(all(row["TriggerRunId"] in trigger_ids for row in pipeline_rows))
+        self.assertTrue(all(row["RunId"] in pipeline_run_ids for row in activity_rows))
+        self.assertGreaterEqual(len(activity_rows), len(pipeline_rows) * 2)
+
 
 if __name__ == "__main__":
     unittest.main()
