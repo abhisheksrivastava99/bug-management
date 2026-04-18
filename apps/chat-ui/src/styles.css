@@ -427,6 +427,69 @@ h1 {
   letter-spacing: 0.05em;
 }
 
+.result-accordion {
+  overflow: hidden;
+}
+
+.result-accordion-summary {
+  cursor: pointer;
+  list-style: none;
+}
+
+.result-accordion-summary::-webkit-details-marker {
+  display: none;
+}
+
+.result-accordion-title {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+}
+
+.result-accordion-summary-side {
+  display: flex;
+  justify-content: flex-end;
+  align-items: flex-start;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.result-accordion-badges {
+  justify-content: flex-end;
+}
+
+.result-accordion-chevron {
+  width: 12px;
+  height: 12px;
+  flex: 0 0 auto;
+  margin-top: 10px;
+  border-right: 2px solid var(--muted);
+  border-bottom: 2px solid var(--muted);
+  transform: rotate(45deg);
+  transition: transform 150ms ease;
+}
+
+.result-accordion[open] .result-accordion-summary {
+  margin-bottom: 24px;
+}
+
+.result-accordion[open] .result-accordion-chevron {
+  transform: rotate(-135deg);
+}
+
+.result-accordion-body {
+  display: grid;
+  gap: 20px;
+}
+
+.accordion-section-toolbar {
+  display: flex;
+  justify-content: flex-end;
+  align-items: flex-start;
+  gap: 16px;
+}
+
 .analysis-grid {
   display: grid;
   gap: 20px;
@@ -1185,9 +1248,16 @@ h1 {
   .analysis-header,
   .evidence-meta,
   .analysis-grid-header,
+  .result-accordion-title,
+  .result-accordion-summary-side,
+  .accordion-section-toolbar,
   .drawer-header {
     grid-template-columns: 1fr;
     display: grid;
+  }
+
+  .result-accordion-summary-side {
+    justify-items: start;
   }
 
   .docs-accordion-title {

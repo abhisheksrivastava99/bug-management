@@ -165,6 +165,34 @@ function renderValueList(values) {
     );
 }
 
+function InvestigationAccordion({ badges = [], kicker, title, children }) {
+    return (
+        <details className="panel result-accordion">
+            <summary className="result-accordion-summary">
+                <div className="result-accordion-title">
+                    <div>
+                        <p className="section-kicker">{kicker}</p>
+                        <h2>{title}</h2>
+                    </div>
+                    <div className="result-accordion-summary-side">
+                        {badges.length ? (
+                            <div className="metric-cluster result-accordion-badges">
+                                {badges.map((badge) => (
+                                    <span key={badge} className="metric-badge">
+                                        {badge}
+                                    </span>
+                                ))}
+                            </div>
+                        ) : null}
+                        <span className="result-accordion-chevron" aria-hidden="true" />
+                    </div>
+                </div>
+            </summary>
+            <div className="result-accordion-body">{children}</div>
+        </details>
+    );
+}
+
 function AnalysisPanel({ title, observation, data, evidenceExpanded }) {
     return (
         <article className="panel analysis-panel">
@@ -295,22 +323,11 @@ function QueryResultPanel({ title, purpose, result, findings }) {
 
 function SqlAnalysisPanel({ sqlAnalysis }) {
     if (!sqlAnalysis) {
-        return null;
+        return <p className="empty-text">No SQL analysis was produced for this issue.</p>;
     }
 
     return (
-        <section className="sql-grid">
-            <div className="analysis-grid-header">
-                <div>
-                    <p className="section-kicker">System 4</p>
-                    <h2>SQL Data vs New Script Impact</h2>
-                </div>
-                <div className="metric-cluster">
-                    <span className="metric-badge">Scenario: {sqlAnalysis.scenarioType || "N/A"}</span>
-                    <span className="metric-badge">Confidence: {sqlAnalysis.confidence}</span>
-                </div>
-            </div>
-
+        <div className="sql-grid">
             <article className="panel sql-summary-panel">
                 <div className="stats-grid">
                     <div className="stat-card">
@@ -374,7 +391,7 @@ function SqlAnalysisPanel({ sqlAnalysis }) {
                     )}
                 </SectionList>
             </article>
-        </section>
+        </div>
     );
 }
 
@@ -476,18 +493,6 @@ function InvestigationPage({
                     </article>
 
                     <article className="panel">
-                        <h2>Service Progress</h2>
-                        <div className="steps">
-                            {viewModel.raw.steps.map((step) => (
-                                <div key={step.name} className={`step-chip step-${step.status}`}>
-                                    <strong>{step.name}</strong>
-                                    <span>{step.detail}</span>
-                                </div>
-                            ))}
-                        </div>
-                    </article>
-
-                    <article className="panel">
                         <h2>Investigation Overview</h2>
                         <div className="stats-grid">
                             {viewModel.overview.map((item) => (
@@ -514,26 +519,11 @@ function InvestigationPage({
                         </article>
                     ) : (
                         <>
-                            <article className="panel">
-                                <h2>Findings</h2>
-                                <div className="findings-grid">
-                                    {viewModel.findings.map((item) => (
-                                        <div key={item.label} className="finding-card">
-                                            <span className="stat-label">{item.label}</span>
-                                            <p>{item.value || "N/A"}</p>
-                                        </div>
-                                    ))}
-                                </div>
-                            </article>
-
-                            <article className="panel">
-                                <div className="section-heading">
-                                    <div>
-                                        <p className="section-kicker">Target Table Mapping</p>
-                                        <h2>Issue-Focused Column Mapping</h2>
-                                    </div>
-                                    <span className="metric-badge">All rows treated as renamed</span>
-                                </div>
+                            <InvestigationAccordion
+                                kicker="Target Table Mapping"
+                                title="Issue-Focused Column Mapping"
+                                badges={["All rows treated as renamed"]}
+                            >
                                 {viewModel.mappingRows.length ? (
                                     <div className="table-wrap">
                                         <table className="mapping-table">
@@ -595,14 +585,22 @@ function InvestigationPage({
                                         <p className="empty-text">No full target-table mapping rows were returned.</p>
                                     )}
                                 </details>
-                            </article>
+                            </InvestigationAccordion>
 
-                            <section className="analysis-grid">
-                                <div className="analysis-grid-header">
-                                    <div>
-                                        <p className="section-kicker">Script Comparison</p>
-                                        <h2>Old vs New Script Analysis</h2>
+                            <InvestigationAccordion kicker="Script Comparison" title="Old vs New Script Analysis">
+                                {viewModel.findings.length ? (
+                                    <div className="findings-grid">
+                                        {viewModel.findings.map((item) => (
+                                            <div key={item.label} className="finding-card">
+                                                <span className="stat-label">{item.label}</span>
+                                                <p>{item.value || "N/A"}</p>
+                                            </div>
+                                        ))}
                                     </div>
+                                ) : (
+                                    <p className="empty-text">No script findings were produced.</p>
+                                )}
+                                <div className="accordion-section-toolbar">
                                     <button
                                         type="button"
                                         className="toggle-evidence"
@@ -611,18 +609,29 @@ function InvestigationPage({
                                         {evidenceExpanded ? "Hide Evidence and Script References" : "Show Evidence and Script References"}
                                     </button>
                                 </div>
-                                {viewModel.analyses.map((analysis) => (
-                                    <AnalysisPanel
-                                        key={analysis.title}
-                                        title={analysis.title}
-                                        observation={analysis.observation}
-                                        data={analysis.data}
-                                        evidenceExpanded={evidenceExpanded}
-                                    />
-                                ))}
-                            </section>
+                                <section className="analysis-grid">
+                                    {viewModel.analyses.map((analysis) => (
+                                        <AnalysisPanel
+                                            key={analysis.title}
+                                            title={analysis.title}
+                                            observation={analysis.observation}
+                                            data={analysis.data}
+                                            evidenceExpanded={evidenceExpanded}
+                                        />
+                                    ))}
+                                </section>
+                            </InvestigationAccordion>
 
-                            <SqlAnalysisPanel sqlAnalysis={viewModel.sqlAnalysis} />
+                            <InvestigationAccordion
+                                kicker="System 4"
+                                title="SQL Data vs New Script Impact"
+                                badges={[
+                                    `Scenario: ${viewModel.sqlAnalysis?.scenarioType || "N/A"}`,
+                                    `Confidence: ${viewModel.sqlAnalysis?.confidence || "N/A"}`,
+                                ]}
+                            >
+                                <SqlAnalysisPanel sqlAnalysis={viewModel.sqlAnalysis} />
+                            </InvestigationAccordion>
 
                             <article className="panel">
                                 <h2>Possible Resolutions</h2>
