@@ -66,9 +66,9 @@ class FixtureGeneratorTests(unittest.TestCase):
         trigger_rows = json.loads((observability_root / "ADFTriggerRun.json").read_text(encoding="utf-8"))
         pipeline_rows = json.loads((observability_root / "ADFPipelineRun.json").read_text(encoding="utf-8"))
         activity_rows = json.loads((observability_root / "ADFActivityRun.json").read_text(encoding="utf-8"))
-        self.assertEqual(len(metadata), 10)
-        self.assertEqual(sum(1 for row in metadata if row["cadence"] == "daily"), 4)
-        self.assertEqual(sum(1 for row in metadata if row["cadence"] == "weekly"), 4)
+        self.assertEqual(len(metadata), 8)
+        self.assertEqual(sum(1 for row in metadata if row["cadence"] == "daily"), 3)
+        self.assertEqual(sum(1 for row in metadata if row["cadence"] == "weekly"), 3)
         self.assertEqual(sum(1 for row in metadata if row["cadence"] == "monthly"), 2)
         self.assertEqual(len(trigger_rows), len(pipeline_rows))
         trigger_ids = {row["TriggerRunId"] for row in trigger_rows}

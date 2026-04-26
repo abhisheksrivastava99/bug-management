@@ -24,14 +24,14 @@ class ObservabilityServiceTests(unittest.TestCase):
             for group in response.groups
             for row in group.pipelines
         }
-        self.assertEqual(rows["RiskWeeklyAggregation"].attention_reason, "Missed expected schedule")
-        self.assertTrue(rows["RiskWeeklyAggregation"].stale)
-        self.assertEqual(rows["CustomerDailySnapshot"].attention_reason, "Running slower than baseline")
-        self.assertGreater(rows["CustomerDailySnapshot"].duration_delta_pct or 0, 0)
-        self.assertTrue(rows["InventoryDailySync"].recovered_after_failure)
+        self.assertEqual(rows["WeeklyRiskAggregation"].attention_reason, "Missed expected schedule")
+        self.assertTrue(rows["WeeklyRiskAggregation"].stale)
+        self.assertEqual(rows["DailyCustomerIngestion"].attention_reason, "Running slower than baseline")
+        self.assertGreater(rows["DailyCustomerIngestion"].duration_delta_pct or 0, 0)
+        self.assertTrue(rows["WeeklyInventorySnapshot"].recovered_after_failure)
 
     def test_detail_uses_pipeline_first_activity_rollup(self) -> None:
-        detail = self.service.get_pipeline_detail("FinanceDailyReconciliation", ObservabilityFilters())
+        detail = self.service.get_pipeline_detail("DailyFinanceReconciliation", ObservabilityFilters())
         self.assertGreaterEqual(len(detail.run_history), 1)
         self.assertGreaterEqual(len(detail.activity_summary), 1)
         self.assertGreaterEqual(detail.retry_summary.total_retries, 1)

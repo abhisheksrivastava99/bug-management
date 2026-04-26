@@ -136,6 +136,7 @@ export default function ObservabilityPage({ apiBaseUrl }) {
     }, [apiBaseUrl, effectiveFilters, selectedPipelineName]);
 
     const groups = pipelines?.groups || [];
+    const visiblePipelines = useMemo(() => flattenVisiblePipelines(groups), [groups]);
     const emptyState = !loading && !error && groups.every((group) => group.pipelines.length === 0);
 
     async function handleGenerateAiSummary() {
@@ -288,7 +289,7 @@ export default function ObservabilityPage({ apiBaseUrl }) {
                     <section className="panel">
                         <div className="section-heading">
                             <div>
-                                <p className="section-kicker">Attention Inbox</p>
+                                <p className="section-kicker">Pipelines</p>
                                 <h2>What Needs Eyes Right Now</h2>
                             </div>
                             <span className="metric-badge">{summary.attention_items.length} active signals</span>
@@ -314,7 +315,7 @@ export default function ObservabilityPage({ apiBaseUrl }) {
                                 ))}
                             </div>
                         ) : (
-                            <p className="empty-text">No attention items match the current filters.</p>
+                            <p className="empty-text">No pipelines need attention in the current filters.</p>
                         )}
                     </section>
 
@@ -334,6 +335,22 @@ export default function ObservabilityPage({ apiBaseUrl }) {
                                 </div>
                             ))}
                         </div>
+                    </section>
+
+                    <section className="panel">
+                        <div className="section-heading">
+                            <div>
+                                <p className="section-kicker">Ops Overview</p>
+                                <h2>Pipeline Graphs</h2>
+                            </div>
+                            <span className="metric-badge">4 graphs</span>
+                        </div>
+                        <PipelineOverviewCharts
+                            groups={groups}
+                            summary={summary}
+                            visiblePipelines={visiblePipelines}
+                            onOpenPipeline={setSelectedPipelineName}
+                        />
                     </section>
 
                     <section className="panel ai-summary-panel">
@@ -487,6 +504,232 @@ export default function ObservabilityPage({ apiBaseUrl }) {
                 </div>
             ) : null}
         </section>
+    );
+}
+
+function PipelineOverviewCharts({ groups, summary, visiblePipelines, onOpenPipeline }) {
+    return (
+        <div className="graph-band">
+            <div className="graph-grid">
+                <CadenceHealthChart groups={groups} />
+                <PipelineSuccessRateChart pipelines={visiblePipelines} onOpenPipeline={onOpenPipeline} />
+                <DurationRegressionChart pipelines={summary.top_regressions || []} onOpenPipeline={onOpenPipeline} />
+                <RecentFailuresChart failures={summary.recent_failures || []} onOpenPipeline={onOpenPipeline} />
+            </div>
+        </div>
+    );
+}
+
+function CadenceHealthChart({ groups }) {
+    const totalVisible = groups.reduce((sum, group) => sum + group.total_count, 0);
+
+    return (
+        <article className="graph-card graph-card-emphasis">
+            <div className="graph-card-header">
+                <div>
+                    <p className="section-kicker">Health</p>
+                    <h3>Cadence Health</h3>
+                </div>
+                <span className="metric-badge">{totalVisible} visible</span>
+            </div>
+            <div className="graph-legend">
+                <span className="legend-item">
+                    <span className="legend-swatch legend-swatch-healthy" />
+                    Healthy
+                </span>
+                <span className="legend-item">
+                    <span className="legend-swatch legend-swatch-attention" />
+                    Needing attention
+                </span>
+            </div>
+            <div className="cadence-health-list">
+                {groups.map((group) => {
+                    const healthyCount = Math.max(0, group.total_count - group.attention_count);
+                    return (
+                        <div key={group.cadence} className="cadence-health-card">
+                            <div className="cadence-health-topline">
+                                <strong>{group.label}</strong>
+                                <span>{group.total_count} total</span>
+                            </div>
+                            <div className="stacked-bar-track cadence-health-track" aria-label={`${group.label} pipeline health`}>
+                                {group.total_count ? (
+                                    <>
+                                        <span
+                                            className="stacked-bar-segment stacked-bar-segment-healthy"
+                                            style={{ width: stackedBarWidth(healthyCount, group.total_count) }}
+                                        />
+                                        <span
+                                            className="stacked-bar-segment stacked-bar-segment-attention"
+                                            style={{ width: stackedBarWidth(group.attention_count, group.total_count) }}
+                                        />
+                                    </>
+                                ) : (
+                                    <span className="stacked-bar-empty" />
+                                )}
+                            </div>
+                            <div className="cadence-health-meta">
+                                <span>{healthyCount} healthy</span>
+                                <span>{group.attention_count} attention</span>
+                            </div>
+                        </div>
+                    );
+                })}
+            </div>
+        </article>
+    );
+}
+
+function PipelineSuccessRateChart({ pipelines, onOpenPipeline }) {
+    const sortedPipelines = [...pipelines]
+        .sort(
+            (left, right) =>
+                safeNumber(left.success_rate_window, 101) - safeNumber(right.success_rate_window, 101) ||
+                left.pipeline_name.localeCompare(right.pipeline_name),
+        )
+        .slice(0, 5);
+
+    return (
+        <article className="graph-card graph-card-emphasis">
+            <div className="graph-card-header">
+                <div>
+                    <p className="section-kicker">Reliability</p>
+                    <h3>Pipeline Success Rate</h3>
+                </div>
+                <span className="metric-badge">{sortedPipelines.length} shown</span>
+            </div>
+            {sortedPipelines.length ? (
+                <div className="column-chart">
+                    <div className="column-chart-scale" aria-hidden="true">
+                        <span>100%</span>
+                        <span>50%</span>
+                        <span>0%</span>
+                    </div>
+                    <div className="column-chart-plot">
+                        {sortedPipelines.map((pipeline) => (
+                            <button
+                                key={pipeline.pipeline_name}
+                                type="button"
+                                className="chart-column"
+                                onClick={() => onOpenPipeline(pipeline.pipeline_name)}
+                                title={formatPipelineDisplayName(pipeline.pipeline_name)}
+                            >
+                                <span className="chart-column-value">{formatPercent(pipeline.success_rate_window)}</span>
+                                <span className="chart-column-bar-shell">
+                                    <span
+                                        className={`chart-column-bar ${successRateFillClassName(pipeline.success_rate_window)}`}
+                                        style={{ height: percentBarWidth(pipeline.success_rate_window) }}
+                                    />
+                                </span>
+                                <span className="chart-column-label">{formatPipelineDisplayName(pipeline.pipeline_name)}</span>
+                                <span className="chart-column-meta">{formatLabel(pipeline.cadence)}</span>
+                            </button>
+                        ))}
+                    </div>
+                </div>
+            ) : (
+                <p className="empty-text graph-empty">No visible pipelines are available in the current view.</p>
+            )}
+        </article>
+    );
+}
+
+function DurationRegressionChart({ pipelines, onOpenPipeline }) {
+    const regressions = [...pipelines]
+        .filter((pipeline) => safeNumber(pipeline.duration_delta_pct, 0) > 0)
+        .sort(
+            (left, right) =>
+                safeNumber(right.duration_delta_pct, 0) - safeNumber(left.duration_delta_pct, 0) ||
+                left.pipeline_name.localeCompare(right.pipeline_name),
+        )
+        .slice(0, 5);
+    const maxDelta = Math.max(...regressions.map((pipeline) => safeNumber(pipeline.duration_delta_pct)), 1);
+
+    return (
+        <article className="graph-card graph-card-emphasis">
+            <div className="graph-card-header">
+                <div>
+                    <p className="section-kicker">Performance</p>
+                    <h3>Duration Regressions</h3>
+                </div>
+                <span className="metric-badge">{regressions.length} shown</span>
+            </div>
+            {regressions.length ? (
+                <div className="column-chart">
+                    <div className="column-chart-scale" aria-hidden="true">
+                        <span>{formatTrend(maxDelta)}</span>
+                        <span>Mid</span>
+                        <span>0</span>
+                    </div>
+                    <div className="column-chart-plot">
+                        {regressions.map((pipeline) => (
+                            <button
+                                key={pipeline.pipeline_name}
+                                type="button"
+                                className="chart-column"
+                                onClick={() => onOpenPipeline(pipeline.pipeline_name)}
+                                title={formatPipelineDisplayName(pipeline.pipeline_name)}
+                            >
+                                <span className="chart-column-value">{formatTrend(pipeline.duration_delta_pct)}</span>
+                                <span className="chart-column-bar-shell">
+                                    <span
+                                        className={`chart-column-bar chart-column-bar-regression ${regressionFillClassName(
+                                            pipeline.duration_delta_pct,
+                                        )}`}
+                                        style={{ height: scaledBarWidth(pipeline.duration_delta_pct, maxDelta) }}
+                                    />
+                                </span>
+                                <span className="chart-column-label">{formatPipelineDisplayName(pipeline.pipeline_name)}</span>
+                                <span className="chart-column-meta">{formatLabel(pipeline.cadence)}</span>
+                            </button>
+                        ))}
+                    </div>
+                </div>
+            ) : (
+                <p className="empty-text graph-empty">No duration regressions are active in the current view.</p>
+            )}
+        </article>
+    );
+}
+
+function RecentFailuresChart({ failures, onOpenPipeline }) {
+    const recentFailures = [...failures]
+        .sort((left, right) => new Date(right.started_at) - new Date(left.started_at))
+        .slice(0, 5);
+
+    return (
+        <article className="graph-card graph-card-emphasis">
+            <div className="graph-card-header">
+                <div>
+                    <p className="section-kicker">Failures</p>
+                    <h3>Recent Failures</h3>
+                </div>
+                <span className="metric-badge">{recentFailures.length} in scope</span>
+            </div>
+            {recentFailures.length ? (
+                <ol className="failure-rail">
+                    {recentFailures.map((failure) => (
+                        <li key={`${failure.pipeline_name}-${failure.started_at}`} className="failure-rail-row">
+                            <span className={`timeline-dot ${timelineDotClassName(failure.status)}`} aria-hidden="true" />
+                            <button
+                                type="button"
+                                className="failure-rail-card"
+                                onClick={() => onOpenPipeline(failure.pipeline_name)}
+                                title={formatPipelineDisplayName(failure.pipeline_name)}
+                            >
+                                <span className="failure-rail-topline">
+                                    <span className="failure-rail-name">{formatPipelineDisplayName(failure.pipeline_name)}</span>
+                                    <span className={`status-pill failure-rail-status status-${failure.status}`}>{failure.status}</span>
+                                </span>
+                                <span className="failure-rail-meta">{formatDateTime(failure.started_at)}</span>
+                                <span className="failure-rail-cadence">{formatLabel(failure.cadence)}</span>
+                            </button>
+                        </li>
+                    ))}
+                </ol>
+            ) : (
+                <p className="empty-text graph-empty">No failed runs landed in the current filter window.</p>
+            )}
+        </article>
     );
 }
 
@@ -807,6 +1050,37 @@ function mergeOptions(current, nextValues) {
     return Array.from(new Set([...(current || []), ...nextValues])).sort();
 }
 
+function flattenVisiblePipelines(groups) {
+    return (groups || []).flatMap((group) => group.pipelines || []);
+}
+
+function safeNumber(value, fallback = 0) {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : fallback;
+}
+
+function percentBarWidth(value) {
+    return `${clamp(safeNumber(value), 0, 100)}%`;
+}
+
+function scaledBarWidth(value, maxValue) {
+    if (!maxValue) {
+        return "0%";
+    }
+    return `${clamp((safeNumber(value) / maxValue) * 100, 0, 100)}%`;
+}
+
+function stackedBarWidth(value, total) {
+    if (!total) {
+        return "0%";
+    }
+    return `${clamp((safeNumber(value) / total) * 100, 0, 100)}%`;
+}
+
+function clamp(value, minimum, maximum) {
+    return Math.min(maximum, Math.max(minimum, value));
+}
+
 function formatDuration(value) {
     if (value === null || value === undefined || Number.isNaN(Number(value))) {
         return "N/A";
@@ -860,6 +1134,31 @@ function trendClassName(value) {
     return "trend-neutral";
 }
 
+function successRateFillClassName(value) {
+    const rate = safeNumber(value, 0);
+    if (rate >= 95) {
+        return "bar-fill-success";
+    }
+    if (rate >= 85) {
+        return "bar-fill-warning";
+    }
+    return "bar-fill-danger";
+}
+
+function regressionFillClassName(value) {
+    return safeNumber(value, 0) >= 25 ? "bar-fill-danger" : "bar-fill-warning";
+}
+
+function timelineDotClassName(status) {
+    if (status === "Succeeded") {
+        return "timeline-dot-success";
+    }
+    if (status === "InProgress") {
+        return "timeline-dot-progress";
+    }
+    return "timeline-dot-danger";
+}
+
 function formatLabel(value) {
     if (!value) {
         return "N/A";
@@ -867,6 +1166,16 @@ function formatLabel(value) {
     return String(value)
         .replace(/_/g, " ")
         .replace(/\b\w/g, (match) => match.toUpperCase());
+}
+
+function formatPipelineDisplayName(value) {
+    if (!value) {
+        return "N/A";
+    }
+    return String(value)
+        .replace(/_/g, " ")
+        .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
+        .trim();
 }
 
 function formatColumnLabel(value) {

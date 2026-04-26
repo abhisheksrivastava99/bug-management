@@ -734,6 +734,390 @@ h1 {
   grid-column: span 2;
 }
 
+.graph-band {
+  margin-top: 18px;
+}
+
+.graph-grid {
+  display: grid;
+  gap: 18px;
+  align-items: stretch;
+}
+
+.graph-card {
+  display: grid;
+  gap: 14px;
+  align-content: start;
+  border-radius: 20px;
+  border: 1px solid var(--line);
+  padding: 18px;
+  background: rgba(248, 250, 252, 0.96);
+  min-height: 280px;
+}
+
+.graph-card-emphasis {
+  gap: 16px;
+}
+
+.graph-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.graph-card h3 {
+  margin: 0;
+}
+
+.graph-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 16px;
+  color: var(--muted);
+  font-size: 0.84rem;
+}
+
+.legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.legend-swatch {
+  width: 12px;
+  height: 12px;
+  border-radius: 999px;
+}
+
+.legend-swatch-healthy {
+  background: var(--success);
+}
+
+.legend-swatch-attention {
+  background: var(--danger);
+}
+
+.cadence-health-list {
+  display: grid;
+  gap: 14px;
+}
+
+.cadence-health-card {
+  display: grid;
+  gap: 10px;
+  border-radius: 18px;
+  border: 1px solid rgba(31, 94, 255, 0.08);
+  background: rgba(255, 255, 255, 0.74);
+  padding: 14px;
+}
+
+.cadence-health-topline,
+.cadence-health-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.cadence-health-topline strong {
+  font-size: 0.98rem;
+}
+
+.cadence-health-topline span,
+.cadence-health-meta {
+  color: var(--muted);
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.stacked-bar-track {
+  min-width: 0;
+  height: 14px;
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.06);
+  overflow: hidden;
+  display: flex;
+}
+
+.cadence-health-track {
+  height: 22px;
+  background: rgba(15, 23, 42, 0.08);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9);
+}
+
+.stacked-bar-segment,
+.bar-fill,
+.chart-column-bar {
+  height: 100%;
+}
+
+.stacked-bar-segment-healthy {
+  background: rgba(31, 143, 95, 0.86);
+}
+
+.stacked-bar-segment-attention {
+  background: rgba(194, 77, 44, 0.82);
+}
+
+.stacked-bar-empty {
+  flex: 1;
+  background: rgba(15, 23, 42, 0.04);
+}
+
+.bar-fill-success {
+  background: linear-gradient(90deg, rgba(31, 143, 95, 0.92), rgba(31, 143, 95, 0.66));
+}
+
+.bar-fill-warning {
+  background: linear-gradient(90deg, rgba(194, 137, 44, 0.92), rgba(194, 137, 44, 0.64));
+}
+
+.bar-fill-danger {
+  background: linear-gradient(90deg, rgba(194, 77, 44, 0.92), rgba(194, 77, 44, 0.66));
+}
+
+.column-chart {
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr);
+  gap: 14px;
+  min-height: 228px;
+}
+
+.column-chart-scale {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: flex-end;
+  padding: 2px 0 36px;
+  color: var(--muted);
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.column-chart-plot {
+  min-height: 228px;
+  display: flex;
+  align-items: stretch;
+  gap: 12px;
+  padding: 6px 0 0;
+  border-bottom: 1px solid rgba(15, 23, 42, 0.1);
+  background:
+    repeating-linear-gradient(
+      to top,
+      rgba(15, 23, 42, 0.06) 0,
+      rgba(15, 23, 42, 0.06) 1px,
+      transparent 1px,
+      transparent 33.33%
+    );
+}
+
+.chart-column {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  padding: 0;
+  flex: 1 1 0;
+  min-width: 0;
+  display: grid;
+  grid-template-rows: auto minmax(132px, 1fr) auto auto;
+  gap: 8px;
+  align-items: end;
+  color: inherit;
+  text-align: center;
+  cursor: pointer;
+}
+
+.chart-column:hover .chart-column-bar-shell,
+.chart-column:focus-visible .chart-column-bar-shell {
+  transform: translateY(-2px);
+}
+
+.chart-column:focus-visible {
+  outline: 2px solid rgba(31, 94, 255, 0.28);
+  outline-offset: 4px;
+  border-radius: 16px;
+}
+
+.chart-column-value {
+  font-size: 0.77rem;
+  font-weight: 800;
+  color: var(--ink);
+}
+
+.chart-column-bar-shell {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
+  min-height: 148px;
+  transition: transform 140ms ease;
+}
+
+.chart-column-bar-shell::before {
+  content: "";
+  width: min(100%, 46px);
+  height: 100%;
+  border-radius: 18px 18px 12px 12px;
+  background: linear-gradient(180deg, rgba(31, 94, 255, 0.08), rgba(15, 23, 42, 0.03));
+  border: 1px solid rgba(15, 23, 42, 0.06);
+}
+
+.chart-column-bar {
+  position: absolute;
+  bottom: 0;
+  width: min(100%, 46px);
+  min-height: 10px;
+  border-radius: 18px 18px 12px 12px;
+  box-shadow: 0 12px 22px rgba(15, 23, 42, 0.14);
+}
+
+.chart-column-bar.bar-fill-success {
+  background: linear-gradient(180deg, rgba(31, 143, 95, 0.58), rgba(31, 143, 95, 0.96));
+}
+
+.chart-column-bar.bar-fill-warning {
+  background: linear-gradient(180deg, rgba(194, 137, 44, 0.56), rgba(194, 137, 44, 0.94));
+}
+
+.chart-column-bar.bar-fill-danger {
+  background: linear-gradient(180deg, rgba(194, 77, 44, 0.52), rgba(194, 77, 44, 0.96));
+}
+
+.chart-column-bar-regression {
+  box-shadow: 0 12px 24px rgba(194, 77, 44, 0.18);
+}
+
+.chart-column-label {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  font-size: 0.76rem;
+  font-weight: 800;
+  line-height: 1.25;
+}
+
+.chart-column-meta {
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.graph-empty {
+  margin: 0;
+  min-height: 200px;
+  display: grid;
+  place-items: center;
+  text-align: center;
+}
+
+.failure-rail {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: 14px;
+  position: relative;
+}
+
+.failure-rail::before {
+  content: "";
+  position: absolute;
+  left: 7px;
+  top: 8px;
+  bottom: 8px;
+  width: 2px;
+  border-radius: 999px;
+  background: linear-gradient(180deg, rgba(31, 94, 255, 0.22), rgba(194, 77, 44, 0.18));
+}
+
+.failure-rail-row {
+  position: relative;
+  display: grid;
+  grid-template-columns: 14px minmax(0, 1fr);
+  gap: 14px;
+  align-items: start;
+}
+
+.timeline-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 999px;
+  margin-top: 13px;
+  box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.92);
+  position: relative;
+  z-index: 1;
+}
+
+.timeline-dot-danger {
+  background: var(--danger);
+}
+
+.timeline-dot-success {
+  background: var(--success);
+}
+
+.timeline-dot-progress {
+  background: var(--accent);
+}
+
+.failure-rail-card {
+  appearance: none;
+  width: 100%;
+  text-align: left;
+  display: grid;
+  gap: 8px;
+  border-radius: 18px;
+  border: 1px solid var(--line);
+  padding: 14px;
+  background: rgba(255, 255, 255, 0.82);
+  color: inherit;
+  cursor: pointer;
+  transition: transform 140ms ease, border-color 140ms ease, box-shadow 140ms ease;
+}
+
+.failure-rail-card:hover,
+.failure-rail-card:focus-visible {
+  transform: translateY(-1px);
+  border-color: rgba(31, 94, 255, 0.18);
+  box-shadow: 0 12px 24px rgba(15, 23, 42, 0.08);
+}
+
+.failure-rail-card:focus-visible {
+  outline: 2px solid rgba(31, 94, 255, 0.24);
+  outline-offset: 4px;
+}
+
+.failure-rail-topline {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.failure-rail-name {
+  font-weight: 800;
+  line-height: 1.35;
+}
+
+.failure-rail-meta,
+.failure-rail-cadence {
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+.failure-rail-status {
+  padding: 5px 8px;
+  font-size: 0.74rem;
+}
+
 .attention-grid {
   display: grid;
   gap: 16px;
@@ -1214,6 +1598,10 @@ h1 {
     align-items: start;
   }
 
+  .graph-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .analysis-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -1274,6 +1662,31 @@ h1 {
 
   .detail-drawer {
     padding: 18px;
+  }
+
+  .graph-card-header,
+  .failure-rail-topline,
+  .cadence-health-topline,
+  .cadence-health-meta {
+    flex-direction: column;
+  }
+
+  .column-chart {
+    grid-template-columns: 32px minmax(0, 1fr);
+    gap: 10px;
+  }
+
+  .column-chart-plot {
+    min-height: 210px;
+    gap: 8px;
+  }
+
+  .chart-column {
+    grid-template-rows: auto minmax(118px, 1fr) auto auto;
+  }
+
+  .chart-column-bar-shell {
+    min-height: 130px;
   }
 
   .mini-chart-row {

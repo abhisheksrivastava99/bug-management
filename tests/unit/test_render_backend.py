@@ -59,11 +59,11 @@ class RenderBackendTests(unittest.TestCase):
         summary_payload = summary_response.json()
         pipelines_payload = pipelines_response.json()
         self.assertEqual(len(summary_payload["summary_metrics"]), 5)
-        self.assertEqual([group["total_count"] for group in pipelines_payload["groups"]], [4, 4, 2])
+        self.assertEqual([group["total_count"] for group in pipelines_payload["groups"]], [3, 3, 2])
         self.assertGreaterEqual(len(summary_payload["attention_items"]), 1)
 
     def test_observability_detail_and_query_fallback(self) -> None:
-        detail_response = self.client.get("/observability/pipelines/CustomerDailySnapshot")
+        detail_response = self.client.get("/observability/pipelines/DailyFinanceReconciliation")
         summary_payload = self.client.get("/observability/summary").json()
         groups_payload = self.client.get("/observability/pipelines").json()["groups"]
         summary_ai_response = self.client.post(

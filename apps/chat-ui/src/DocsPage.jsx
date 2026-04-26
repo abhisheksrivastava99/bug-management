@@ -221,7 +221,7 @@ const monitoringArchitectureSteps = [
     "Those diagnostics flow into a Log Analytics workspace that becomes the primary historical telemetry source.",
     "The FastAPI backend queries and normalizes the run data, then joins it with app-owned metadata such as cadence, owner, and criticality.",
     "The observability API returns summary metrics, grouped pipeline health, drilldown detail, AI summary context, and natural-language query results.",
-    "The React dashboard renders filters, attention items, grouped health views, run history, and AI-assisted monitoring panels.",
+    "The React dashboard renders filters, pipeline cards, grouped health views, run history, and AI-assisted monitoring panels.",
 ];
 
 const monitoringCapabilities = [
@@ -230,7 +230,7 @@ const monitoringCapabilities = [
         details: "Time window, cadence, status, owner, criticality, and pipeline search help narrow the operational scope quickly.",
     },
     {
-        title: "Attention Inbox",
+        title: "Pipelines",
         details: "The dashboard surfaces the pipelines that need eyes first, including failures, retries, and regression signals.",
     },
     {
@@ -250,7 +250,7 @@ const monitoringCapabilities = [
 const monitoringApiSurface = [
     {
         endpoint: "GET /observability/summary",
-        details: "Returns summary metrics and the attention inbox used for the top-level monitoring view.",
+        details: "Returns summary metrics and the pipeline card band used for the top-level monitoring view.",
     },
     {
         endpoint: "GET /observability/pipelines",
